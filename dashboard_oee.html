@@ -1,1366 +1,424 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OEE Analytics — Tableau de Bord de Performance</title>
+<title>OEE Analytics — Professional Industrial Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 /* ══════════════════════════════════════════════
-   DESIGN SYSTEM — SCADA NOIR
-   Palette industrielle haute fidélité
-══════════════════════════════════════════════ */
+   DESIGN SYSTEM — MODERN & PROFESSIONAL
+   Supports Light and Dark Modes
+   ══════════════════════════════════════════════ */
 :root {
-  --ink:       #030608;
-  --void:      #060c14;
-  --deep:      #09111e;
-  --panel:     #0c1828;
-  --card:      #0f1e30;
-  --surface:   #132335;
-  --edge:      rgba(255,255,255,.06);
-  --edge-h:    rgba(255,255,255,.1);
+  /* Common */
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  
+  /* Semantic Colors */
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6;
+}
 
-  --amber:     #e8a920;
-  --amber-dim: #b8831a;
-  --amber-glow:rgba(232,169,32,.18);
-  --gold:      #f5c842;
+[data-theme="dark"] {
+  --bg: #0f172a;
+  --panel: #1e293b;
+  --card: #1e293b;
+  --surface: #334155;
+  --border: #334155;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+  --header-bg: rgba(15, 23, 42, 0.8);
+  --card-hover: #2d3748;
+}
 
-  --ice:       #38c8f0;
-  --ice-dim:   #1d8aaa;
-  --ice-glow:  rgba(56,200,240,.14);
-
-  --jade:      #00e699;
-  --jade-dim:  #00a36b;
-  --jade-glow: rgba(0,230,153,.14);
-
-  --crimson:   #ff3b3b;
-  --crim-glow: rgba(255,59,59,.18);
-
-  --solar:     #ff8c42;
-
-  --t0:        #ffffff;
-  --t1:        #d4e4f4;
-  --t2:        #7a9ab8;
-  --t3:        #3a5470;
-  --t4:        #1c3050;
-
-  --r:         8px;
-  --r-sm:      5px;
-
-  --shadow:    0 8px 40px rgba(0,0,0,.6);
-  --glow-a:    0 0 20px var(--amber-glow), 0 0 60px rgba(232,169,32,.06);
-  --glow-i:    0 0 20px var(--ice-glow);
-  --glow-j:    0 0 20px var(--jade-glow);
-  --glow-c:    0 0 20px var(--crim-glow);
+[data-theme="light"] {
+  --bg: #f8fafc;
+  --panel: #ffffff;
+  --card: #ffffff;
+  --surface: #f1f5f9;
+  --border: #e2e8f0;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-dim: #94a3b8;
+  --header-bg: rgba(255, 255, 255, 0.8);
+  --card-hover: #f1f5f9;
 }
 
 /* ── RESET ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
 body {
-  font-family: 'Rajdhani', sans-serif;
-  background: var(--void);
-  color: var(--t1);
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text-main);
+  transition: background-color 0.3s ease, color 0.3s ease;
   min-height: 100vh;
-  overflow-x: hidden;
+  line-height: 1.5;
 }
 
-/* ── BACKGROUND TEXTURE ── */
-body::before {
-  content: '';
-  position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background:
-    radial-gradient(ellipse 80% 60% at 15% 20%, rgba(232,169,32,.04) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 80% at 85% 80%, rgba(56,200,240,.04) 0%, transparent 60%),
-    repeating-linear-gradient(0deg, transparent, transparent 49px, rgba(255,255,255,.015) 50px),
-    repeating-linear-gradient(90deg, transparent, transparent 49px, rgba(255,255,255,.015) 50px);
-}
-body::after {
-  content: '';
-  position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background: radial-gradient(ellipse 40% 40% at 50% 0%, rgba(232,169,32,.06) 0%, transparent 70%);
-}
-
-/* ══════════════════════════════════════════
-   HEADER
-══════════════════════════════════════════ */
+/* ── HEADER ── */
 .header {
-  position: relative; z-index: 100;
-  display: flex; align-items: stretch;
-  height: 60px;
-  background: rgba(9,17,30,.95);
-  border-bottom: 1px solid var(--edge);
-  backdrop-filter: blur(20px);
-}
-.hd-logo {
-  display: flex; align-items: center; gap: 14px;
-  padding: 0 28px;
-  border-right: 1px solid var(--edge);
-  min-width: 260px;
-}
-.logo-icon {
-  width: 36px; height: 36px;
-  background: var(--amber);
-  border-radius: 6px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 18px; flex-shrink: 0;
-  box-shadow: var(--glow-a);
-}
-.logo-text {
-  font-family: 'Orbitron', monospace;
-  font-size: 13px; font-weight: 700;
-  letter-spacing: 2px; color: var(--t0);
-  line-height: 1.1;
-}
-.logo-sub {
-  font-size: 9px; color: var(--t3);
-  letter-spacing: 2px; text-transform: uppercase;
-  margin-top: 2px;
-}
-
-.hd-nav {
-  display: flex; align-items: center;
-  padding: 0 20px; gap: 4px;
-  border-right: 1px solid var(--edge);
-}
-.nav-btn {
-  padding: 6px 14px; border-radius: 4px;
-  font-size: 11px; font-weight: 600;
-  letter-spacing: 1.5px; text-transform: uppercase;
-  cursor: pointer; border: none;
-  color: var(--t3); background: transparent;
-  transition: all .2s; font-family: 'Rajdhani', sans-serif;
-}
-.nav-btn:hover { background: var(--edge); color: var(--t1); }
-.nav-btn.active {
-  background: var(--amber-glow);
-  color: var(--amber);
-  border: 1px solid rgba(232,169,32,.25);
-}
-
-.hd-meta {
-  display: flex; align-items: center; gap: 0;
-  margin-left: auto;
-}
-.hd-chip {
-  display: flex; align-items: center; gap: 8px;
-  padding: 0 20px;
-  border-left: 1px solid var(--edge);
-  height: 100%;
-  font-size: 12px;
-}
-.live-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--jade);
-  box-shadow: 0 0 8px var(--jade);
-  animation: pulse 2s infinite;
-}
-@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
-.hd-clock {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px; color: var(--t1); letter-spacing: 1px;
-}
-.hd-date { font-size: 11px; color: var(--t3); }
-.period-sel {
-  background: var(--surface); border: 1px solid var(--edge);
-  color: var(--t1); padding: 6px 14px; border-radius: 4px;
-  font-family: 'Rajdhani'; font-size: 12px; font-weight: 500;
-  cursor: pointer; letter-spacing: .5px;
-  transition: border-color .2s;
-}
-.period-sel:focus { outline: none; border-color: var(--amber); }
-
-/* ══════════════════════════════════════════
-   WRAPPER
-══════════════════════════════════════════ */
-.wrapper {
-  position: relative; z-index: 1;
-  max-width: 1600px; margin: 0 auto;
-  padding: 20px 24px 40px;
-  display: flex; flex-direction: column; gap: 18px;
-}
-
-/* ══════════════════════════════════════════
-   SECTION LABEL
-══════════════════════════════════════════ */
-.section-lbl {
-  display: flex; align-items: center; gap: 12px;
-  margin-bottom: 2px;
-}
-.section-lbl span {
-  font-family: 'Orbitron', monospace;
-  font-size: 10px; letter-spacing: 3px;
-  color: var(--t3); text-transform: uppercase;
-  white-space: nowrap;
-}
-.section-lbl::before, .section-lbl::after {
-  content: ''; flex: 1; height: 1px;
-  background: linear-gradient(90deg, transparent, var(--edge) 40%, transparent);
-}
-.section-lbl::before { flex: 0 0 40px; background: var(--edge); }
-
-/* ══════════════════════════════════════════
-   GAUGE ROW
-══════════════════════════════════════════ */
-.gauge-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr) 1.1fr;
-  gap: 16px;
-  align-items: stretch;
-}
-
-.gauge-card {
-  background: var(--card);
-  border: 1px solid var(--edge);
-  border-radius: var(--r);
-  padding: 22px 18px 18px;
-  display: flex; flex-direction: column; align-items: center;
-  position: relative; overflow: hidden;
-  transition: border-color .3s, box-shadow .3s;
-  cursor: default;
-}
-.gauge-card:hover {
-  border-color: var(--edge-h);
-  box-shadow: var(--shadow);
-}
-.gauge-card::before {
-  content: ''; position: absolute;
-  top: 0; left: 20%; right: 20%; height: 1px;
-}
-.gauge-card.g-oee::before {
-  background: linear-gradient(90deg, transparent, var(--amber), var(--solar), transparent);
-  box-shadow: 0 2px 12px var(--amber);
-}
-.gauge-card.g-d::before {
-  background: linear-gradient(90deg, transparent, var(--ice), transparent);
-  box-shadow: 0 2px 12px var(--ice);
-}
-.gauge-card.g-p::before {
-  background: linear-gradient(90deg, transparent, var(--jade), transparent);
-  box-shadow: 0 2px 12px var(--jade);
-}
-.gauge-card.g-q::before {
-  background: linear-gradient(90deg, transparent, #b47fff, transparent);
-  box-shadow: 0 2px 12px #b47fff;
-}
-
-.gauge-label {
-  font-family: 'Orbitron', monospace;
-  font-size: 9px; letter-spacing: 3px; text-transform: uppercase;
-  color: var(--t3); margin-bottom: 14px;
-}
-
-/* SVG GAUGE */
-.gauge-svg-wrap {
-  position: relative; width: 140px; height: 140px;
-}
-.gauge-svg-wrap svg {
-  width: 100%; height: 100%;
-  transform: rotate(-90deg);
-}
-.g-track { fill: none; stroke: rgba(255,255,255,.05); stroke-width: 10; }
-.g-fill {
-  fill: none; stroke-width: 10; stroke-linecap: round;
-  transition: stroke-dashoffset 1.8s cubic-bezier(.4,0,.2,1);
-}
-.g-inner {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 2px;
-}
-.g-value {
-  font-family: 'Orbitron', monospace;
-  font-size: 26px; font-weight: 700;
-  letter-spacing: -1px; line-height: 1;
-  color: var(--t0);
-}
-.g-unit {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px; color: var(--t3); letter-spacing: 1px;
-}
-
-.gauge-footer {
-  margin-top: 14px; text-align: center; width: 100%;
-}
-.gauge-formula {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9px; color: var(--t3); letter-spacing: .5px;
-  margin-bottom: 8px;
-}
-.gauge-bar-bg {
-  width: 100%; height: 3px;
-  background: rgba(255,255,255,.06); border-radius: 2px; overflow: hidden;
-}
-.gauge-bar-fill {
-  height: 100%; border-radius: 2px;
-  transition: width 1.8s cubic-bezier(.4,0,.2,1);
-}
-.gauge-change {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--header-bg);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  height: 64px;
   display: flex; align-items: center; justify-content: space-between;
-  margin-top: 6px;
+  padding: 0 32px;
 }
-.gauge-vs { font-size: 10px; color: var(--t3); letter-spacing: .5px; }
-.gauge-delta {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px; font-weight: 600;
+.brand { display: flex; align-items: center; gap: 12px; }
+.logo-box {
+  width: 32px; height: 32px; background: var(--primary);
+  border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 700;
 }
-.delta-up { color: var(--jade); }
-.delta-dn { color: var(--crimson); }
+.brand-text { font-weight: 700; font-size: 18px; letter-spacing: -0.025em; }
 
-/* KPI STACK (5th column) */
-.kpi-stack {
-  display: flex; flex-direction: column; gap: 12px;
+.nav-tabs { display: flex; gap: 8px; }
+.tab {
+  padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 500;
+  cursor: pointer; border: none; background: transparent; color: var(--text-muted);
+  transition: var(--transition);
 }
-.kpi-mini {
-  background: var(--card);
-  border: 1px solid var(--edge);
-  border-radius: var(--r-sm);
-  padding: 14px 18px;
-  display: flex; align-items: center; gap: 14px;
-  flex: 1;
-  transition: border-color .2s;
+.tab:hover { background: var(--surface); color: var(--text-main); }
+.tab.active { background: var(--primary); color: white; }
+
+.actions { display: flex; align-items: center; gap: 16px; }
+.theme-toggle {
+  width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--card); color: var(--text-main); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
+  transition: var(--transition);
 }
-.kpi-mini:hover { border-color: var(--edge-h); }
-.kpi-icon {
-  width: 40px; height: 40px; border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 18px; flex-shrink: 0;
-}
-.kpi-icon.prod { background: rgba(56,200,240,.1); }
-.kpi-icon.reb  { background: rgba(255,59,59,.1); }
-.kpi-icon.arrt { background: rgba(232,169,32,.1); }
-.kpi-num {
-  font-family: 'Orbitron', monospace;
-  font-size: 20px; font-weight: 700;
-  color: var(--t0); letter-spacing: -1px;
-  line-height: 1;
-}
-.kpi-lbl {
-  font-size: 10px; color: var(--t3);
-  letter-spacing: 1px; text-transform: uppercase;
-  margin-top: 3px;
+.theme-toggle:hover { border-color: var(--primary); color: var(--primary); }
+
+/* ── LAYOUT ── */
+.container {
+  max-width: 1440px; margin: 0 auto; padding: 24px 32px;
+  display: flex; flex-direction: column; gap: 24px;
 }
 
-/* ══════════════════════════════════════════
-   ALERT
-══════════════════════════════════════════ */
-.alert {
-  background: linear-gradient(135deg, rgba(255,59,59,.07), rgba(255,140,66,.04));
-  border: 1px solid rgba(255,59,59,.3);
-  border-left: 3px solid var(--crimson);
-  border-radius: var(--r-sm);
-  padding: 12px 20px;
-  display: flex; align-items: center; gap: 16px;
+/* ── KPI GRID ── */
+.kpi-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
 }
-.alert-icon { font-size: 22px; flex-shrink: 0; }
-.alert-content {}
-.alert-title {
-  font-family: 'Orbitron', monospace;
-  font-size: 11px; letter-spacing: 2px;
-  color: var(--crimson); margin-bottom: 3px;
+.kpi-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  padding: 24px; position: relative; overflow: hidden;
+  transition: var(--transition); box-shadow: var(--shadow-sm);
 }
-.alert-body { font-size: 13px; color: var(--t2); }
-.alert-body strong { color: var(--t1); }
-.alert-action {
-  margin-left: auto; flex-shrink: 0;
-  padding: 6px 16px; border-radius: 4px;
-  background: rgba(255,59,59,.15);
-  border: 1px solid rgba(255,59,59,.3);
-  color: var(--crimson);
-  font-family: 'Orbitron'; font-size: 9px;
-  letter-spacing: 2px; text-transform: uppercase;
-  cursor: pointer;
-}
+.kpi-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--primary); }
 
-/* ══════════════════════════════════════════
-   CHARTS GRID
-══════════════════════════════════════════ */
-.charts-main { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
-.charts-bot  { display: grid; grid-template-columns: 1.4fr 1fr 1.2fr; gap: 16px; }
+.kpi-label { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+.kpi-value { font-size: 32px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; }
+.kpi-sub { font-size: 12px; color: var(--text-dim); display: flex; align-items: center; gap: 6px; }
+.trend-up { color: var(--success); font-weight: 600; }
+.trend-down { color: var(--danger); font-weight: 600; }
 
+.progress-track { height: 6px; background: var(--surface); border-radius: 10px; margin-top: 16px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 10px; transition: width 1s ease-out; }
+
+/* ── CHARTS SECTION ── */
+.charts-grid {
+  display: grid; grid-template-columns: 2fr 1fr; gap: 24px;
+}
 .chart-card {
-  background: var(--card);
-  border: 1px solid var(--edge);
-  border-radius: var(--r);
-  padding: 20px;
-  display: flex; flex-direction: column; gap: 14px;
-  transition: border-color .2s;
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  padding: 24px; box-shadow: var(--shadow-sm);
 }
-.chart-card:hover { border-color: var(--edge-h); }
+.chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.chart-title { font-size: 16px; font-weight: 600; color: var(--text-main); }
 
-.cc-header {
-  display: flex; align-items: flex-start; justify-content: space-between;
-}
-.cc-title {
-  font-family: 'Orbitron', monospace;
-  font-size: 11px; font-weight: 600;
-  letter-spacing: 2px; color: var(--t0);
-}
-.cc-sub { font-size: 11px; color: var(--t3); margin-top: 4px; letter-spacing: .5px; }
-.cc-badge {
-  padding: 3px 10px; border-radius: 20px;
-  font-family: 'Orbitron'; font-size: 8px;
-  letter-spacing: 1.5px; text-transform: uppercase;
-  font-weight: 600;
-}
-.b-amber { background: rgba(232,169,32,.12); color: var(--amber); border: 1px solid rgba(232,169,32,.25); }
-.b-red   { background: rgba(255,59,59,.12);  color: var(--crimson); border: 1px solid rgba(255,59,59,.25); }
-.b-jade  { background: rgba(0,230,153,.12);  color: var(--jade);    border: 1px solid rgba(0,230,153,.25); }
-.b-ice   { background: rgba(56,200,240,.12); color: var(--ice);     border: 1px solid rgba(56,200,240,.25); }
-
-.chart-area { position: relative; }
-.chart-area canvas { max-height: 210px; }
-.chart-area.tall canvas { max-height: 260px; }
-.chart-area.sm canvas { max-height: 180px; }
-
-/* ══════════════════════════════════════════
-   MACHINE TABLE
-══════════════════════════════════════════ */
+/* ── TABLE SECTION ── */
 .table-card {
-  background: var(--card);
-  border: 1px solid var(--edge);
-  border-radius: var(--r);
-  overflow: hidden;
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  overflow: hidden; box-shadow: var(--shadow-sm);
 }
-.table-header {
-  padding: 18px 22px;
-  border-bottom: 1px solid var(--edge);
-  display: flex; align-items: center; justify-content: space-between;
-  background: rgba(255,255,255,.02);
-}
-.table-title {
-  font-family: 'Orbitron', monospace;
-  font-size: 11px; letter-spacing: 2px; color: var(--t0);
-}
-.table-info { font-size: 11px; color: var(--t3); }
-
+.table-header { padding: 20px 24px; border-bottom: 1px solid var(--border); background: var(--surface); display: flex; justify-content: space-between; align-items: center; }
 table { width: 100%; border-collapse: collapse; }
-thead tr {
-  background: linear-gradient(0deg, transparent, rgba(255,255,255,.02));
-}
-thead th {
-  padding: 10px 18px;
-  text-align: left;
-  font-family: 'Orbitron'; font-size: 8px;
-  letter-spacing: 2px; text-transform: uppercase;
-  color: var(--t3); font-weight: 400;
-  border-bottom: 1px solid var(--edge);
-}
-tbody tr {
-  border-bottom: 1px solid rgba(255,255,255,.03);
-  transition: background .15s;
-}
-tbody tr:last-child { border-bottom: none; }
-tbody tr:hover { background: rgba(255,255,255,.025); }
-tbody td { padding: 14px 18px; vertical-align: middle; }
+th { padding: 12px 24px; text-align: left; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; background: var(--surface); }
+td { padding: 16px 24px; border-bottom: 1px solid var(--border); font-size: 14px; }
+tr:hover { background: var(--surface); }
 
-.machine-cell {}
-.mc-name { font-size: 13px; font-weight: 600; color: var(--t0); margin-bottom: 2px; }
-.mc-id {
-  font-family: 'JetBrains Mono'; font-size: 10px; color: var(--t3);
+.status-pill {
+  padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 6px;
 }
-.mc-resp { font-size: 10px; color: var(--t3); margin-top: 1px; }
+.status-running { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+.status-warning { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+.status-critical { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
 
-.ligne-tag {
-  display: inline-block; padding: 2px 10px;
-  border-radius: 3px; font-family: 'Orbitron';
-  font-size: 8px; letter-spacing: 2px; font-weight: 600;
+@media (max-width: 1024px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .charts-grid { grid-template-columns: 1fr; }
 }
-.la { background: rgba(56,200,240,.1); color: var(--ice); border: 1px solid rgba(56,200,240,.2); }
-.lb { background: rgba(232,169,32,.1); color: var(--amber); border: 1px solid rgba(232,169,32,.2); }
-.lc { background: rgba(0,230,153,.1); color: var(--jade); border: 1px solid rgba(0,230,153,.2); }
-
-/* OEE PILL */
-.oee-pill {
-  display: inline-flex; align-items: center; justify-content: center;
-  padding: 5px 16px; border-radius: 5px;
-  font-family: 'Orbitron'; font-size: 14px; font-weight: 700;
-  letter-spacing: 1px; min-width: 80px;
-  transition: box-shadow .3s;
-}
-.pill-wc  { background: rgba(0,230,153,.1);  color: var(--jade);    border: 1px solid rgba(0,230,153,.3); }
-.pill-ok  { background: rgba(56,200,240,.1); color: var(--ice);     border: 1px solid rgba(56,200,240,.3); }
-.pill-md  { background: rgba(232,169,32,.1); color: var(--amber);   border: 1px solid rgba(232,169,32,.3); }
-.pill-lo  { background: rgba(255,59,59,.1);  color: var(--crimson); border: 1px solid rgba(255,59,59,.3);  box-shadow: 0 0 16px rgba(255,59,59,.15); }
-
-/* METRIC BARS */
-.metric-col { display: flex; flex-direction: column; gap: 5px; min-width: 160px; }
-.m-row { display: flex; align-items: center; gap: 8px; }
-.m-label { font-family: 'JetBrains Mono'; font-size: 9px; color: var(--t3); width: 10px; }
-.m-bar-bg { flex: 1; height: 4px; background: rgba(255,255,255,.06); border-radius: 2px; overflow: hidden; }
-.m-bar-fill { height: 100%; border-radius: 2px; transition: width 1.5s ease; }
-.m-val { font-family: 'JetBrains Mono'; font-size: 10px; width: 34px; text-align: right; }
-
-/* STATUS DOT */
-.status-dot {
-  width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
-  box-shadow: 0 0 8px currentColor;
-}
-.s-ok   { background: var(--jade);    color: var(--jade); }
-.s-warn { background: var(--amber);   color: var(--amber); animation: pulse 2s infinite; }
-.s-crit { background: var(--crimson); color: var(--crimson); animation: pulse 1s infinite; }
-
-/* SPARKLINE placeholder */
-.sparkline { height: 30px; display: flex; align-items: flex-end; gap: 2px; }
-.sp-bar { flex: 1; border-radius: 2px 2px 0 0; min-height: 3px; transition: height .5s ease; }
-
-/* RECOMMENDATIONS */
-.reco-card {
-  background: var(--card);
-  border: 1px solid var(--edge);
-  border-radius: var(--r);
-  padding: 20px;
-  display: flex; flex-direction: column; gap: 12px;
-}
-.reco-item {
-  display: flex; align-items: flex-start; gap: 12px;
-  padding: 12px;
-  background: rgba(255,255,255,.02);
-  border-radius: var(--r-sm);
-  border-left: 2px solid transparent;
-  transition: background .2s;
-}
-.reco-item:hover { background: rgba(255,255,255,.04); }
-.reco-item.hi  { border-left-color: var(--crimson); }
-.reco-item.med { border-left-color: var(--amber); }
-.reco-item.lo  { border-left-color: var(--jade); }
-.reco-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
-.reco-text {}
-.reco-title { font-size: 12px; font-weight: 600; color: var(--t1); margin-bottom: 3px; }
-.reco-body  { font-size: 11px; color: var(--t3); line-height: 1.4; }
-.reco-tag {
-  display: inline-block; margin-top: 5px;
-  padding: 1px 8px; border-radius: 3px;
-  font-family: 'Orbitron'; font-size: 7px; letter-spacing: 1.5px;
-  text-transform: uppercase;
-}
-.tag-hi  { background: rgba(255,59,59,.12); color: var(--crimson); }
-.tag-med { background: rgba(232,169,32,.12); color: var(--amber); }
-.tag-lo  { background: rgba(0,230,153,.12); color: var(--jade); }
-
-/* FOOTER */
-.footer {
-  position: relative; z-index: 1;
-  border-top: 1px solid var(--edge);
-  padding: 14px 28px;
-  display: flex; align-items: center; justify-content: space-between;
-  font-size: 11px; color: var(--t4);
-  background: rgba(6,12,20,.8);
-}
-.footer-brand {
-  font-family: 'Orbitron'; font-size: 9px;
-  letter-spacing: 2px; color: var(--t3);
-}
-.footer-meta { display: flex; gap: 24px; }
-
-/* ── SCROLLBAR ── */
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: var(--void); }
-::-webkit-scrollbar-thumb { background: var(--t4); border-radius: 3px; }
-
-/* ── ANIMATIONS ── */
-@keyframes countUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-.animate-in { animation: countUp .6s ease both; }
 </style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════════
-     HEADER
-══════════════════════════════════════════ -->
 <header class="header">
-  <div class="hd-logo">
-    <div class="logo-icon">⬡</div>
-    <div>
-      <div class="logo-text">OEE ANALYTICS</div>
-      <div class="logo-sub">Ligne de Production · 2024</div>
-    </div>
+  <div class="brand">
+    <div class="logo-box">O</div>
+    <div class="brand-text">OEE Analytics</div>
   </div>
 
-  <nav class="hd-nav">
-    <button class="nav-btn active">Vue Globale</button>
-    <button class="nav-btn">Disponibilité</button>
-    <button class="nav-btn">Machines</button>
-    <button class="nav-btn">Pareto</button>
+  <nav class="nav-tabs">
+    <button class="tab active">Vue Globale</button>
+    <button class="tab">Performances</button>
+    <button class="tab">Arrêts</button>
+    <button class="tab">Paramètres</button>
   </nav>
 
-  <div class="hd-meta">
-    <div class="hd-chip">
-      <div class="live-dot"></div>
-      <span style="font-size:11px;color:var(--jade);font-weight:600;letter-spacing:1px">EN LIGNE</span>
-    </div>
-    <div class="hd-chip">
-      <select class="period-sel">
-        <option>Année complète 2024</option>
-        <option>T1 — Jan → Mar</option>
-        <option>T2 — Avr → Jun</option>
-        <option>T3 — Jul → Sep</option>
-        <option>T4 — Oct → Déc</option>
-      </select>
-    </div>
-    <div class="hd-chip" style="flex-direction:column;align-items:flex-end;gap:2px;padding-right:24px;">
-      <div class="hd-clock" id="clock">--:--:--</div>
-      <div class="hd-date" id="hdate">Chargement...</div>
-    </div>
+  <div class="actions">
+    <button class="theme-toggle" id="theme-toggle" title="Changer le thème">🌓</button>
+    <div style="font-size: 13px; color: var(--text-muted); font-weight: 500;" id="current-time">16:05:00</div>
   </div>
 </header>
 
-<!-- ══════════════════════════════════════════
-     MAIN WRAPPER
-══════════════════════════════════════════ -->
-<div class="wrapper">
-
-  <!-- ── SECTION: KPIs GAUGES ── -->
-  <div>
-    <div class="section-lbl"><span>Indicateurs Clés de Performance · OEE = D × P × Q</span></div>
-
-    <div class="gauge-row">
-
-      <!-- OEE -->
-      <div class="gauge-card g-oee">
-        <div class="gauge-label">OEE · TRS Global</div>
-        <div class="gauge-svg-wrap">
-          <svg viewBox="0 0 140 140">
-            <defs>
-              <linearGradient id="go" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#e8a920"/>
-                <stop offset="100%" stop-color="#ff8c42"/>
-              </linearGradient>
-            </defs>
-            <circle class="g-track" cx="70" cy="70" r="58" stroke-dasharray="364.4" stroke-dashoffset="0"/>
-            <circle class="g-fill" cx="70" cy="70" r="58" stroke="url(#go)"
-              stroke-dasharray="364.4" stroke-dashoffset="364.4" id="gauge-oee-fill"
-              style="filter:drop-shadow(0 0 6px #e8a920)"/>
-          </svg>
-          <div class="g-inner">
-            <div class="g-value" id="gv-oee" style="color:var(--amber)">0%</div>
-            <div class="g-unit">OEE</div>
-          </div>
-        </div>
-        <div class="gauge-footer">
-          <div class="gauge-formula">D × P × Q</div>
-          <div class="gauge-bar-bg">
-            <div class="gauge-bar-fill" id="gb-oee" style="background:linear-gradient(90deg,var(--amber),var(--solar));width:0%"></div>
-          </div>
-          <div class="gauge-change">
-            <span class="gauge-vs">Objectif 85%</span>
-            <span class="gauge-delta delta-dn" id="gd-oee">▼ 15.5 pts</span>
-          </div>
-        </div>
+<div class="container">
+  
+  <!-- KPI Row -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">OEE Global (TRS)</div>
+      <div class="kpi-value">69.5%</div>
+      <div class="kpi-sub">
+        <span class="trend-down">↓ 2.4%</span> vs mois dernier
       </div>
-
-      <!-- DISPONIBILITÉ -->
-      <div class="gauge-card g-d">
-        <div class="gauge-label">Disponibilité</div>
-        <div class="gauge-svg-wrap">
-          <svg viewBox="0 0 140 140">
-            <circle class="g-track" cx="70" cy="70" r="58" stroke-dasharray="364.4"/>
-            <circle class="g-fill" cx="70" cy="70" r="58" stroke="#38c8f0"
-              stroke-dasharray="364.4" stroke-dashoffset="364.4" id="gauge-d-fill"
-              style="filter:drop-shadow(0 0 6px #38c8f0)"/>
-          </svg>
-          <div class="g-inner">
-            <div class="g-value" id="gv-d" style="color:var(--ice)">0%</div>
-            <div class="g-unit">DISPO</div>
-          </div>
-        </div>
-        <div class="gauge-footer">
-          <div class="gauge-formula">Tmarche / Trequis</div>
-          <div class="gauge-bar-bg">
-            <div class="gauge-bar-fill" id="gb-d" style="background:var(--ice);width:0%"></div>
-          </div>
-          <div class="gauge-change">
-            <span class="gauge-vs">6 270h arrêts</span>
-            <span class="gauge-delta delta-up">▲ Levier N°1</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- PERFORMANCE -->
-      <div class="gauge-card g-p">
-        <div class="gauge-label">Performance</div>
-        <div class="gauge-svg-wrap">
-          <svg viewBox="0 0 140 140">
-            <circle class="g-track" cx="70" cy="70" r="58" stroke-dasharray="364.4"/>
-            <circle class="g-fill" cx="70" cy="70" r="58" stroke="#00e699"
-              stroke-dasharray="364.4" stroke-dashoffset="364.4" id="gauge-p-fill"
-              style="filter:drop-shadow(0 0 6px #00e699)"/>
-          </svg>
-          <div class="g-inner">
-            <div class="g-value" id="gv-p" style="color:var(--jade)">0%</div>
-            <div class="g-unit">PERF</div>
-          </div>
-        </div>
-        <div class="gauge-footer">
-          <div class="gauge-formula">Preelle / Ptheorique</div>
-          <div class="gauge-bar-bg">
-            <div class="gauge-bar-fill" id="gb-p" style="background:var(--jade);width:0%"></div>
-          </div>
-          <div class="gauge-change">
-            <span class="gauge-vs">vs cadence std</span>
-            <span class="gauge-delta delta-up">▲ Bon niveau</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- QUALITÉ -->
-      <div class="gauge-card g-q">
-        <div class="gauge-label">Qualité</div>
-        <div class="gauge-svg-wrap">
-          <svg viewBox="0 0 140 140">
-            <circle class="g-track" cx="70" cy="70" r="58" stroke-dasharray="364.4"/>
-            <circle class="g-fill" cx="70" cy="70" r="58" stroke="#b47fff"
-              stroke-dasharray="364.4" stroke-dashoffset="364.4" id="gauge-q-fill"
-              style="filter:drop-shadow(0 0 6px #b47fff)"/>
-          </svg>
-          <div class="g-inner">
-            <div class="g-value" id="gv-q" style="color:#b47fff">0%</div>
-            <div class="g-unit">QUAL</div>
-          </div>
-        </div>
-        <div class="gauge-footer">
-          <div class="gauge-formula">Pconf / Preelle</div>
-          <div class="gauge-bar-bg">
-            <div class="gauge-bar-fill" id="gb-q" style="background:#b47fff;width:0%"></div>
-          </div>
-          <div class="gauge-change">
-            <span class="gauge-vs">252 333 rebuts</span>
-            <span class="gauge-delta delta-up">▲ Excellent</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- KPI STACK -->
-      <div class="kpi-stack">
-        <div class="kpi-mini">
-          <div class="kpi-icon prod">🏭</div>
-          <div>
-            <div class="kpi-num animate-in" id="kpi-prod">4 052 043</div>
-            <div class="kpi-lbl">Pièces Produites</div>
-          </div>
-        </div>
-        <div class="kpi-mini">
-          <div class="kpi-icon reb">🔴</div>
-          <div>
-            <div class="kpi-num animate-in" id="kpi-reb">252 333</div>
-            <div class="kpi-lbl">Rebuts · 6.2%</div>
-          </div>
-        </div>
-        <div class="kpi-mini">
-          <div class="kpi-icon arrt">⏱</div>
-          <div>
-            <div class="kpi-num animate-in">6 270 h</div>
-            <div class="kpi-lbl">Temps d'Arrêt</div>
-          </div>
-        </div>
-      </div>
-
-    </div><!-- /gauge-row -->
-  </div>
-
-  <!-- ── ALERT ── -->
-  <div class="alert">
-    <div class="alert-icon">⚠</div>
-    <div class="alert-content">
-      <div class="alert-title">Alerte Performance · Machine Critique Détectée</div>
-      <div class="alert-body">
-        <strong>M03 — Presse Hydraulique Gamma</strong> affiche un OEE de <strong style="color:var(--crimson)">56.1%</strong>,
-        bien en dessous du seuil critique de 65%. Cause principale : pannes mécaniques récurrentes (20.9% des arrêts).
-        Impact estimé : <strong>+105 349 rebuts</strong> sur l'année.
+      <div class="progress-track">
+        <div class="progress-fill" style="width: 69.5%; background: var(--warning);"></div>
       </div>
     </div>
-    <div class="alert-action">→ Voir Pareto</div>
+
+    <div class="kpi-card">
+      <div class="kpi-label">Disponibilité</div>
+      <div class="kpi-value">81.2%</div>
+      <div class="kpi-sub">
+        <span class="trend-up">↑ 1.2%</span> vs objectif
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width: 81.2%; background: var(--info);"></div>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-label">Performance</div>
+      <div class="kpi-value">90.7%</div>
+      <div class="kpi-sub">
+        <span class="trend-up">↑ 0.5%</span> stable
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width: 90.7%; background: var(--success);"></div>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-label">Qualité</div>
+      <div class="kpi-value">94.8%</div>
+      <div class="kpi-sub">
+        <span class="trend-down">↓ 0.1%</span> conforme
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width: 94.8%; background: var(--primary);"></div>
+      </div>
+    </div>
   </div>
 
-  <!-- ── CHARTS ROW 1 ── -->
-  <div class="charts-main">
-
-    <!-- TREND -->
+  <!-- Charts Row -->
+  <div class="charts-grid">
     <div class="chart-card">
-      <div class="cc-header">
-        <div>
-          <div class="cc-title">Évolution OEE Mensuelle — 2024</div>
-          <div class="cc-sub">Disponibilité · Performance · Qualité · OEE Global · Objectif 85%</div>
-        </div>
-        <span class="cc-badge b-amber">12 MOIS</span>
+      <div class="chart-header">
+        <div class="chart-title">Évolution de l'OEE (12 derniers mois)</div>
       </div>
-      <div class="chart-area tall">
-        <canvas id="c-trend"></canvas>
+      <div style="height: 300px;">
+        <canvas id="mainTrendChart"></canvas>
       </div>
     </div>
-
-    <!-- MACHINE BAR -->
+    
     <div class="chart-card">
-      <div class="cc-header">
-        <div>
-          <div class="cc-title">Classement OEE Machines</div>
-          <div class="cc-sub">Performance comparative · 5 machines</div>
-        </div>
-        <span class="cc-badge b-red">M03 ⚠</span>
+      <div class="chart-header">
+        <div class="chart-title">Répartition des Arrêts</div>
       </div>
-      <div class="chart-area tall">
-        <canvas id="c-mach"></canvas>
+      <div style="height: 300px;">
+        <canvas id="downtimeChart"></canvas>
       </div>
-    </div>
-
-  </div>
-
-  <!-- ── CHARTS ROW 2 ── -->
-  <div class="charts-bot">
-
-    <!-- PARETO -->
-    <div class="chart-card">
-      <div class="cc-header">
-        <div>
-          <div class="cc-title">Pareto des Causes d'Arrêt</div>
-          <div class="cc-sub">Durée totale (h) · Courbe cumulée Loi 80/20</div>
-        </div>
-        <span class="cc-badge b-amber">10 181 EVENTS</span>
-      </div>
-      <div class="chart-area">
-        <canvas id="c-pareto"></canvas>
-      </div>
-    </div>
-
-    <!-- DONUT -->
-    <div class="chart-card">
-      <div class="cc-header">
-        <div>
-          <div class="cc-title">Répartition par Catégorie</div>
-          <div class="cc-sub">Distribution des temps d'arrêt</div>
-        </div>
-        <span class="cc-badge b-ice">DONUT</span>
-      </div>
-      <div class="chart-area sm" style="display:flex;align-items:center;justify-content:center;">
-        <canvas id="c-donut" style="max-width:200px;max-height:200px;"></canvas>
-      </div>
-    </div>
-
-    <!-- RECOMMENDATIONS -->
-    <div class="reco-card">
-      <div>
-        <div class="cc-title">Actions Recommandées</div>
-        <div class="cc-sub" style="margin-top:4px;">Insights basés sur l'analyse OEE</div>
-      </div>
-      <div class="reco-item hi">
-        <div class="reco-icon">🔴</div>
-        <div class="reco-text">
-          <div class="reco-title">Révision M03 — Urgente</div>
-          <div class="reco-body">OEE 56.1% = 28.4 pts sous objectif. Maintenance préventive renforcée requise.</div>
-          <span class="reco-tag tag-hi">Priorité Haute</span>
-        </div>
-      </div>
-      <div class="reco-item med">
-        <div class="reco-icon">🟡</div>
-        <div class="reco-text">
-          <div class="reco-title">Réduire pannes mécaniques</div>
-          <div class="reco-body">1 308h/an perdues. Plan de maintenance préventive hebdomadaire recommandé.</div>
-          <span class="reco-tag tag-med">Priorité Moyenne</span>
-        </div>
-      </div>
-      <div class="reco-item lo">
-        <div class="reco-icon">🟢</div>
-        <div class="reco-text">
-          <div class="reco-title">Dupliquer M04 → M02/M05</div>
-          <div class="reco-body">M04 = 84.3% World Class. Partager les bonnes pratiques opérateur Équipe B.</div>
-          <span class="reco-tag tag-lo">Bonne Pratique</span>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- ── MACHINE TABLE ── -->
-  <div>
-    <div class="section-lbl"><span>Analyse Détaillée par Machine</span></div>
-    <div class="table-card">
-      <div class="table-header">
-        <div class="table-title">Performance Individuelle · 5 Machines · Année 2024</div>
-        <div class="table-info">Données : 4 435 enregistrements · 3 shifts/jour · 301 jours ouvrés</div>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Machine</th>
-            <th>Ligne</th>
-            <th>Statut</th>
-            <th>OEE Global</th>
-            <th>Métriques D · P · Q</th>
-            <th>Production</th>
-            <th>Rebuts</th>
-            <th>Tendance</th>
-          </tr>
-        </thead>
-        <tbody>
-
-          <tr>
-            <td class="machine-cell">
-              <div class="mc-name">Fraiseuse CNC Alpha</div>
-              <div class="mc-id">M01 · Ligne A</div>
-              <div class="mc-resp">↳ Ahmed K.</div>
-            </td>
-            <td><span class="ligne-tag la">Ligne A</span></td>
-            <td style="display:flex;align-items:center;gap:8px;padding-top:20px">
-              <div class="status-dot s-ok"></div>
-              <span style="font-size:11px;color:var(--jade);font-weight:600">Normal</span>
-            </td>
-            <td><span class="oee-pill pill-ok">75.7%</span></td>
-            <td>
-              <div class="metric-col">
-                <div class="m-row">
-                  <span class="m-label" style="color:var(--ice)">D</span>
-                  <div class="m-bar-bg"><div class="m-bar-fill" style="width:86.9%;background:var(--ice)"></div></div>
-                  <span class="m-val" style="color:var(--ice)">86.9%</span>
-                </div>
-                <div class="m-row">
-                  <span class="m-label" style="color:var(--jade)">P</span>
-                  <div class="m-bar-bg"><div class="m-bar-fill" style="width:90.7%;background:var(--jade)"></div></div>
-                  <span class="m-val" style="color:var(--jade)">90.7%</span>
-                </div>
-                <div class="m-row">
-                  <span class="m-label" style="color:#b47fff">Q</span>
-                  <div class="m-bar-bg"><div class="m-bar-fill" style="width:95.9%;background:#b47fff"></div></div>
-                  <span class="m-val" style="color:#b47fff">95.9%</span>
-                </div>
-              </div>
-            </td>
-            <td>
-              <div style="font-family:'JetBrains Mono';font-size:12px;color:var(--t1)">842 306</div>
-              <div style="font-size:10px;color:var(--t3);margin-top:2px">pièces conf.</div>
-            </td>
-            <td style="font-family:'JetBrains Mono';font-size:12px;color:var(--amber)">32 001</td>
-            <td>
-              <div class="sparkline" id="sp-m01"></div>
-            </td>
-          </tr>
-
-          <tr>
-            <td class="machine-cell">
-              <div class="mc-name">Tour CNC Beta</div>
-              <div class="mc-id">M02 · Ligne A</div>
-              <div class="mc-resp">↳ Sara M.</div>
-            </td>
-            <td><span class="ligne-tag la">Ligne A</span></td>
-            <td style="display:flex;align-items:center;gap:8px;padding-top:20px">
-              <div class="status-dot s-warn"></div>
-              <span style="font-size:11px;color:var(--amber);font-weight:600">Surveiller</span>
-            </td>
-            <td><span class="oee-pill pill-md">66.8%</span></td>
-            <td>
-              <div class="metric-col">
-                <div class="m-row">
-                  <span class="m-label" style="color:var(--ice)">D</span>
-                  <div class="m-bar-bg"><div class="m-bar-fill" style="width:81.4%;background:var(--ice)"></div></div>
-                  <span class="m-val" style="color:var(--ice)">81.4%</span>
-                </div>
-                <div class="m-row">
-                  <span class="m-label" style="color:var(--jade)">P</span>
-                  <div class="m-bar-bg"><div class="m-bar-fill" style="width:87.1%;background:var(--jade)"></div></div>
-                  <span class="m-val" style="color:var(--jade)">87.1%</span>
-                </div>
-                <div class="m-row">
-                  <span class="m-label" style="color:#b47fff">Q</span>
-                  <div class="m-bar-bg"><div class="m-bar-fill" style="width:94.1%;background:#b47fff"></div></div>
-                  <span class="m-val" style="color:#b47fff">94.1%</span>
-                </div>
-              </div>
-            </td>
-            <td>
-              <div style="font-family:'JetBrains Mono';font-size:12px;color:var(--t1)">602 811</div>
-              <div style="font-size:10px;color:var(--t3);margin-top:2px">pièces conf.</div>
-            </td>
-            <td style="font-family:'JetBrains Mono';font-size:12px;color:var(--amber)">36 893</td>
-            <td><div class="sparkline" id="sp-m02"></div></td>
-          </tr>
-
-          <tr style="background:rgba(255,59,59,.03)">
-            <td class="machine-cell">
-              <div class="mc-name">Presse Hydraulique Gamma</div>
-              <div class="mc-id">M03 · Ligne B</div>
-              <div class="mc-resp">↳ Karim B.</div>
-            </td>
-            <td><span class="ligne-tag lb">Ligne B</span></td>
-            <td style="display:flex;align-items:center;gap:8px;padding-top:20px">
-              <div class="status-dot s-crit"></div>
-              <span style="font-size:11px;color:var(--crimson);font-weight:600">Critique</span>
-            </td>
-            <td><span class="oee-pill pill-lo">56.1%</span></td>
-            <td>
-              <div class="metric-col">
-                <div class="m-row">
-                  <span class="m-label" style="color:var(--ice)">D</span>
-                  <div class="m-bar-bg"><div class="m-bar-fill" style="width:74.2%;background:var(--ice)"></div></div>
-                  <span class="m-val" style="color:var(--ice)">74.2%</span>
-                </div>
-                <div class="m-row">
-                  <span class="m-label" style="color:var(--jade)">P</span>
-                  <div class="m-bar-bg"><div class="m-bar-fill" style="width:83%;background:var(--jade)"></div></div>
-                  <span class="m-val" style="color:var(--jade)">83.0%</span>
-                </div>
-                <div class="m-row">
-                  <span class="m-label" style="color:#b47fff">Q</span>
-                  <div class="m-bar-bg"><div class="m-bar-fill" style="width:91.1%;background:#b47fff"></div></div>
-                  <span class="m-val" style="color:#b47fff">91.1%</span>
-                </div>
-              </div>
-            </td>
-            <td>
-              <div style="font-family:'JetBrains Mono';font-size:12px;color:var(--t1)">1 084 941</div>
-              <div style="font-size:10px;color:var(--t3);margin-top:2px">pièces conf.</div>
-            </td>
-            <td style="font-family:'JetBrains Mono';font-size:12px;color:var(--crimson)">105 349</td>
-            <td><div class="sparkline" id="sp-m03"></div></td>
-          </tr>
-
-          <tr>
-            <td class="machine-cell">
-              <div class="mc-name">Robot Soudure Delta</div>
-              <div class="mc-id">M04 · Ligne B</div>
-              <div class="mc-resp">↳ Nadia L.</div>
-            </td>
-            <td><span class="ligne-tag lb">Ligne B</span></td>
-            <td style="display:flex;align-items:center;gap:8px;padding-top:20px">
-              <div class="status-dot s-ok" style="box-shadow:0 0 12px var(--jade)"></div>
-              <span style="font-size:11px;color:var(--jade);font-weight:600">World Class ★</span>
-            </td>
-            <td><span class="oee-pill pill-wc" style="box-shadow:0 0 20px rgba(0,230,153,.2)">84.3%</span></td>
-            <td>
-              <div class="metric-col">
-                <div class="m-row">
-                  <span class="m-label" style="color:var(--ice)">D</span>
-                  <div class="m-bar-bg"><div class="m-bar-fill" style="width:90.7%;background:var(--ice)"></div></div>
-                  <span class="m-val" style="color:var(--ice)">90.7%</span>
-                </div>
-                <div class="m-row">
-                  <span class="m-label" style="color:var(--jade)">P</span>
-                  <div class="m-bar-bg"><div class="m-bar-fill" style="width:94.8%;background:var(--jade)"></div></div>
-                  <span class="m-val" style="color:var(--jade)">94.8%</span>
-                </div>
-                <div class="m-row">
-                  <span class="m-label" style="color:#b47fff">Q</span>
-                  <div class="m-bar-bg"><div class="m-bar-fill" style="width:97.9%;background:#b47fff"></div></div>
-                  <span class="m-val" style="color:#b47fff">97.9%</span>
-                </div>
-              </div>
-            </td>
-            <td>
-              <div style="font-family:'JetBrains Mono';font-size:12px;color:var(--t1)">490 530</div>
-              <div style="font-size:10px;color:var(--t3);margin-top:2px">pièces conf.</div>
-            </td>
-            <td style="font-family:'JetBrains Mono';font-size:12px;color:var(--jade)">11 270</td>
-            <td><div class="sparkline" id="sp-m04"></div></td>
-          </tr>
-
-          <tr>
-            <td class="machine-cell">
-              <div class="mc-name">Ligne Assemblage Epsilon</div>
-              <div class="mc-id">M05 · Ligne C</div>
-              <div class="mc-resp">↳ Youssef T.</div>
-            </td>
-            <td><span class="ligne-tag lc">Ligne C</span></td>
-            <td style="display:flex;align-items:center;gap:8px;padding-top:20px">
-              <div class="status-dot s-warn"></div>
-              <span style="font-size:11px;color:var(--amber);font-weight:600">Surveiller</span>
-            </td>
-            <td><span class="oee-pill pill-md">64.7%</span></td>
-            <td>
-              <div class="metric-col">
-                <div class="m-row">
-                  <span class="m-label" style="color:var(--ice)">D</span>
-                  <div class="m-bar-bg"><div class="m-bar-fill" style="width:78.2%;background:var(--ice)"></div></div>
-                  <span class="m-val" style="color:var(--ice)">78.2%</span>
-                </div>
-                <div class="m-row">
-                  <span class="m-label" style="color:var(--jade)">P</span>
-                  <div class="m-bar-bg"><div class="m-bar-fill" style="width:89%;background:var(--jade)"></div></div>
-                  <span class="m-val" style="color:var(--jade)">89.0%</span>
-                </div>
-                <div class="m-row">
-                  <span class="m-label" style="color:#b47fff">Q</span>
-                  <div class="m-bar-bg"><div class="m-bar-fill" style="width:93%;background:#b47fff"></div></div>
-                  <span class="m-val" style="color:#b47fff">93.0%</span>
-                </div>
-              </div>
-            </td>
-            <td>
-              <div style="font-family:'JetBrains Mono';font-size:12px;color:var(--t1)">1 031 455</div>
-              <div style="font-size:10px;color:var(--t3);margin-top:2px">pièces conf.</div>
-            </td>
-            <td style="font-family:'JetBrains Mono';font-size:12px;color:var(--amber)">66 820</td>
-            <td><div class="sparkline" id="sp-m05"></div></td>
-          </tr>
-
-        </tbody>
-      </table>
     </div>
   </div>
 
-</div><!-- /wrapper -->
-
-<!-- FOOTER -->
-<footer class="footer">
-  <div class="footer-brand">OEE ANALYTICS · SCADA NOIR DASHBOARD · v2.0</div>
-  <div class="footer-meta">
-    <span>5 Machines · 3 Lignes · 301 jours ouvrés</span>
-    <span>4 435 enregistrements · 10 181 événements</span>
-    <span>Données 2024 · Générées via Python</span>
+  <!-- Table Section -->
+  <div class="table-card">
+    <div class="table-header">
+      <div class="chart-title">Statut des Machines</div>
+      <div style="font-size: 12px; color: var(--text-muted);">Mise à jour : 2024-05-11</div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Machine</th>
+          <th>Ligne</th>
+          <th>Statut</th>
+          <th>OEE</th>
+          <th>Prod. Réelle</th>
+          <th>Responsable</th>
+        </tr>
+      </thead>
+      <tbody id="machineTableBody">
+        <!-- Will be populated by JS -->
+      </tbody>
+    </table>
   </div>
-</footer>
+
+</div>
 
 <script>
-/* ══════════════════════════════════════════
-   DATA
-══════════════════════════════════════════ */
-const D = {
-  oee: 0.6952, dispo: 0.8228, perf: 0.8893, qual: 0.9442,
-  mois: ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"],
-  oee_m:  [70.7,73.1,74.1,73.7,73.0,70.2,68.2,66.3,65.1,64.9,66.5,68.5],
-  d_m:    [83.1,84.8,85.1,84.8,84.6,82.4,81.7,80.0,79.6,79.5,80.5,81.4],
-  p_m:    [89.6,91.0,91.5,91.6,90.8,89.8,87.9,87.0,86.1,85.9,87.2,88.9],
-  q_m:    [94.6,94.4,94.6,94.4,94.5,94.4,94.4,94.6,94.4,94.3,94.3,94.2],
-  mach_lbl: ['M01\nAlpha','M02\nBeta','M03\nGamma','M04\nDelta','M05\nEpsilon'],
-  mach_oee: [75.7, 66.8, 56.1, 84.3, 64.7],
-  pareto_lbl: ['Panne mécanique','Maint. préventive','Panne électrique',"Chgt d'outil",'Réglage qualité','Manque matière','Contrôle produit','Chgt de série'],
-  pareto_h: [1308,1134,916,761,615,607,488,438],
-  pareto_c: [20.9,39.0,53.6,65.7,75.5,85.2,93.0,100.0],
-  donut_lbl: ['Pannes mécaniques','Maintenance','Pannes électriques','Changements','Qualité & Org.'],
-  donut_d: [20.9,18.0,14.6,19.3,27.2],
-};
+// ── THEME ENGINE ───────────────────────────────────────────────────
+const themeToggle = document.getElementById('theme-toggle');
+const html = document.documentElement;
 
-/* CLOCK */
-function tick() {
-  const n = new Date();
-  document.getElementById('clock').textContent = n.toLocaleTimeString('fr-FR');
-  document.getElementById('hdate').textContent = n.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
-}
-tick(); setInterval(tick, 1000);
-
-/* ══════════════════════════════════════════
-   GAUGES
-══════════════════════════════════════════ */
-function animGauge(fillId, valId, barId, val) {
-  const R = 58, C = 2 * Math.PI * R; // 364.4
-  const fill = document.getElementById(fillId);
-  const vEl  = document.getElementById(valId);
-  const bar  = document.getElementById(barId);
-  let start = null;
-  function step(ts) {
-    if (!start) start = ts;
-    const p = Math.min((ts - start) / 1600, 1);
-    const e = 1 - Math.pow(1 - p, 4);
-    const offset = C - C * val * e;
-    fill.style.strokeDashoffset = offset;
-    vEl.textContent = Math.round(val * 100 * e) + '%';
-    if (bar) bar.style.width = (val * e * 100) + '%';
-    if (p < 1) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
-}
-
-window.addEventListener('load', () => {
-  setTimeout(() => {
-    animGauge('gauge-oee-fill', 'gv-oee', 'gb-oee', D.oee);
-    animGauge('gauge-d-fill',   'gv-d',   'gb-d',   D.dispo);
-    animGauge('gauge-p-fill',   'gv-p',   'gb-p',   D.perf);
-    animGauge('gauge-q-fill',   'gv-q',   'gb-q',   D.qual);
-    buildCharts();
-    buildSparklines();
-  }, 200);
+themeToggle.addEventListener('click', () => {
+  const currentTheme = html.getAttribute('data-theme');
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', newTheme);
+  localStorage.setItem('theme', newTheme);
+  updateChartsTheme();
 });
 
-/* ══════════════════════════════════════════
-   CHART DEFAULTS
-══════════════════════════════════════════ */
-Chart.defaults.font.family = "'Rajdhani', sans-serif";
-Chart.defaults.font.size = 12;
-Chart.defaults.color = '#3a5470';
-Chart.defaults.plugins.legend.labels.usePointStyle = true;
-Chart.defaults.plugins.legend.labels.pointStyleWidth = 8;
-Chart.defaults.plugins.legend.labels.boxHeight = 5;
+// Load saved theme
+const savedTheme = localStorage.getItem('theme') || 'dark';
+html.setAttribute('data-theme', savedTheme);
 
-const G = { color:'rgba(255,255,255,.04)', drawBorder:false };
-const TT = { backgroundColor:'#0f1e30', borderColor:'rgba(255,255,255,.08)', borderWidth:1, padding:10 };
+// ── CLOCK ──────────────────────────────────────────────────────────
+setInterval(() => {
+  document.getElementById('current-time').textContent = new Date().toLocaleTimeString('fr-FR');
+}, 1000);
 
-function buildCharts() {
+// ── CHARTS ─────────────────────────────────────────────────────────
+const chartColors = {
+  primary: '#6366f1',
+  success: '#10b981',
+  warning: '#f59e0b',
+  danger: '#ef4444',
+  info: '#3b82f6',
+  grid: () => html.getAttribute('data-theme') === 'dark' ? '#334155' : '#e2e8f0',
+  text: () => html.getAttribute('data-theme') === 'dark' ? '#94a3b8' : '#64748b'
+};
 
-  /* ── TREND ── */
-  new Chart(document.getElementById('c-trend'), {
+let mainChart, pieChart;
+
+function initCharts() {
+  const ctxTrend = document.getElementById('mainTrendChart').getContext('2d');
+  mainChart = new Chart(ctxTrend, {
     type: 'line',
     data: {
-      labels: D.mois,
-      datasets: [
-        {
-          label:'OEE', data: D.oee_m,
-          borderColor:'#e8a920', backgroundColor:'rgba(232,169,32,.07)',
-          borderWidth:3, tension:.4, fill:true, pointRadius:5,
-          pointBackgroundColor:'#e8a920', pointBorderColor:'#060c14',
-          pointBorderWidth:2, pointHoverRadius:7
-        },
-        {
-          label:'Disponibilité', data: D.d_m,
-          borderColor:'#38c8f0', borderWidth:1.5, tension:.4,
-          pointRadius:3, fill:false, pointBackgroundColor:'#38c8f0'
-        },
-        {
-          label:'Performance', data: D.p_m,
-          borderColor:'#00e699', borderWidth:1.5, tension:.4,
-          pointRadius:3, fill:false, pointBackgroundColor:'#00e699'
-        },
-        {
-          label:'Qualité', data: D.q_m,
-          borderColor:'#b47fff', borderWidth:1.5, tension:.4,
-          pointRadius:3, fill:false, pointBackgroundColor:'#b47fff'
-        },
-        {
-          label:'Objectif 85%', data: Array(12).fill(85),
-          borderColor:'rgba(255,59,59,.5)', borderDash:[6,4],
-          borderWidth:1.5, pointRadius:0, fill:false
-        }
-      ]
+      labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'],
+      datasets: [{
+        label: 'OEE %',
+        data: [65, 68, 70, 72, 69, 71, 75, 74, 72, 70, 68, 69.5],
+        borderColor: chartColors.primary,
+        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+        fill: true,
+        tension: 0.4,
+        borderWidth: 3,
+        pointRadius: 4,
+        pointBackgroundColor: chartColors.primary
+      }]
     },
     options: {
-      responsive:true, maintainAspectRatio:true,
-      animation:{duration:1400, easing:'easeInOutQuart'},
-      plugins:{
-        legend:{position:'bottom', labels:{color:'#3a5470', font:{size:11}}},
-        tooltip:{...TT, callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y.toFixed(1)}%`}}
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
       },
-      scales:{
-        x:{grid:G, ticks:{color:'#3a5470'}},
-        y:{grid:G, min:60, max:100, ticks:{callback:v=>v+'%', color:'#3a5470'}}
+      scales: {
+        x: { grid: { display: false }, ticks: { color: chartColors.text() } },
+        y: { grid: { color: chartColors.grid() }, ticks: { color: chartColors.text(), callback: v => v + '%' }, min: 50, max: 100 }
       }
     }
   });
 
-  /* ── MACHINE BAR ── */
-  new Chart(document.getElementById('c-mach'), {
-    type:'bar',
-    data:{
-      labels:['M01 Alpha','M02 Beta','M03 Gamma','M04 Delta','M05 Epsilon'],
-      datasets:[{
-        label:'OEE %',
-        data: D.mach_oee,
-        backgroundColor: D.mach_oee.map(v =>
-          v>=80 ? 'rgba(0,230,153,.6)':
-          v>=70 ? 'rgba(56,200,240,.6)':
-          v>=65 ? 'rgba(232,169,32,.6)':'rgba(255,59,59,.65)'
-        ),
-        borderRadius:5, borderSkipped:false,
-        borderWidth:1,
-        borderColor: D.mach_oee.map(v=>
-          v>=80?'rgba(0,230,153,.8)':v>=70?'rgba(56,200,240,.8)':v>=65?'rgba(232,169,32,.8)':'rgba(255,59,59,.9)'
-        )
+  const ctxPie = document.getElementById('downtimeChart').getContext('2d');
+  pieChart = new Chart(ctxPie, {
+    type: 'doughnut',
+    data: {
+      labels: ['Pannes', 'Maintenance', 'Qualité', 'Organisation'],
+      datasets: [{
+        data: [35, 25, 20, 20],
+        backgroundColor: [chartColors.danger, chartColors.warning, chartColors.success, chartColors.info],
+        borderWidth: 0,
+        hoverOffset: 10
       }]
     },
-    options:{
-      indexAxis:'y', responsive:true, maintainAspectRatio:true,
-      animation:{duration:1200},
-      plugins:{
-        legend:{display:false},
-        tooltip:{...TT, callbacks:{label:c=>` OEE: ${c.parsed.x.toFixed(1)}%`}}
-      },
-      scales:{
-        x:{grid:G, min:0, max:100, ticks:{callback:v=>v+'%', color:'#3a5470'}},
-        y:{grid:{display:false}, ticks:{color:'#7a9ab8'}}
-      }
-    }
-  });
-
-  /* ── PARETO ── */
-  new Chart(document.getElementById('c-pareto'), {
-    type:'bar',
-    data:{
-      labels: D.pareto_lbl,
-      datasets:[
-        {
-          label:'Durée (h)',
-          data: D.pareto_h,
-          backgroundColor:'rgba(232,169,32,.65)',
-          borderColor:'rgba(232,169,32,.9)',
-          borderWidth:1, borderRadius:4, yAxisID:'y'
-        },
-        {
-          label:'% Cumulé',
-          data: D.pareto_c,
-          type:'line',
-          borderColor:'#ff3b3b',
-          backgroundColor:'rgba(255,59,59,.08)',
-          fill:true,
-          borderWidth:2, pointRadius:5,
-          pointBackgroundColor:'#ff3b3b',
-          pointBorderColor:'#060c14', pointBorderWidth:2,
-          tension:.3, yAxisID:'y2'
-        }
-      ]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:true,
-      animation:{duration:1300},
-      plugins:{
-        legend:{position:'bottom', labels:{color:'#3a5470', font:{size:11}}},
-        tooltip:{...TT}
-      },
-      scales:{
-        x:{grid:G, ticks:{maxRotation:25, color:'#3a5470', font:{size:10}}},
-        y:{grid:G, ticks:{callback:v=>v+'h', color:'#3a5470'}},
-        y2:{position:'right', grid:{display:false},
-            min:0, max:100, ticks:{callback:v=>v+'%', color:'#3a5470'}}
-      }
-    }
-  });
-
-  /* ── DONUT ── */
-  new Chart(document.getElementById('c-donut'), {
-    type:'doughnut',
-    data:{
-      labels: D.donut_lbl,
-      datasets:[{
-        data: D.donut_d,
-        backgroundColor:['rgba(255,59,59,.7)','rgba(232,169,32,.7)','rgba(255,140,66,.7)','rgba(56,200,240,.7)','rgba(0,230,153,.7)'],
-        borderColor:['#ff3b3b','#e8a920','#ff8c42','#38c8f0','#00e699'],
-        borderWidth:1.5, hoverOffset:10
-      }]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:true, cutout:'65%',
-      animation:{duration:1500},
-      plugins:{
-        legend:{position:'bottom', labels:{color:'#3a5470', font:{size:10}, boxHeight:6}},
-        tooltip:{...TT, callbacks:{label:c=>` ${c.label}: ${c.parsed.toFixed(1)}%`}}
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '70%',
+      plugins: {
+        legend: { position: 'bottom', labels: { color: chartColors.text(), usePointStyle: true, padding: 20 } }
       }
     }
   });
 }
 
-/* ══════════════════════════════════════════
-   SPARKLINES
-══════════════════════════════════════════ */
-const SP_DATA = {
-  'm01': [73,75,76,75,74,75,76,77,76,75,76,76],
-  'm02': [64,66,67,66,65,66,67,66,65,66,67,67],
-  'm03': [53,55,57,56,55,55,56,55,54,55,56,56],
-  'm04': [82,84,85,84,83,84,85,84,83,84,85,84],
-  'm05': [62,64,65,64,63,64,65,64,63,64,65,65],
+function updateChartsTheme() {
+  const color = chartColors.text();
+  const grid = chartColors.grid();
+  
+  mainChart.options.scales.x.ticks.color = color;
+  mainChart.options.scales.y.ticks.color = color;
+  mainChart.options.scales.y.grid.color = grid;
+  mainChart.update();
+  
+  pieChart.options.plugins.legend.labels.color = color;
+  pieChart.update();
+}
+
+// ── POPULATE TABLE ─────────────────────────────────────────────────
+const machines = [
+  { id: 'M01', name: 'CNC Alpha', line: 'A', status: 'running', oee: 84.3, prod: 12540, resp: 'Ahmed K.' },
+  { id: 'M02', name: 'Tour Beta', line: 'A', status: 'running', oee: 76.5, prod: 8420, resp: 'Sara M.' },
+  { id: 'M03', name: 'Presse Gamma', line: 'B', status: 'critical', oee: 56.1, prod: 4120, resp: 'Karim B.' },
+  { id: 'M04', name: 'Robot Delta', line: 'B', status: 'warning', oee: 68.2, prod: 9650, resp: 'Nadia L.' },
+  { id: 'M05', name: 'Assemblage Epsilon', line: 'C', status: 'running', oee: 72.4, prod: 11200, resp: 'Youssef T.' }
+];
+
+function renderTable() {
+  const tbody = document.getElementById('machineTableBody');
+  tbody.innerHTML = machines.map(m => `
+    <tr>
+      <td>
+        <div style="font-weight: 600;">${m.name}</div>
+        <div style="font-size: 11px; color: var(--text-dim);">${m.id}</div>
+      </td>
+      <td>Ligne ${m.line}</td>
+      <td>
+        <span class="status-pill status-${m.status}">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: currentColor;"></span>
+          ${m.status.toUpperCase()}
+        </span>
+      </td>
+      <td style="font-weight: 700; color: ${m.oee < 60 ? 'var(--danger)' : m.oee < 75 ? 'var(--warning)' : 'var(--success)'}">
+        ${m.oee}%
+      </td>
+      <td style="font-family: 'JetBrains Mono';">${m.prod.toLocaleString()}</td>
+      <td>${m.resp}</td>
+    </tr>
+  `).join('');
+}
+
+window.onload = () => {
+  initCharts();
+  renderTable();
 };
-const SP_COLORS = {m01:'#38c8f0',m02:'#e8a920',m03:'#ff3b3b',m04:'#00e699',m05:'#e8a920'};
-
-function buildSparklines() {
-  ['m01','m02','m03','m04','m05'].forEach(id => {
-    const el = document.getElementById('sp-'+id);
-    if (!el) return;
-    const data = SP_DATA[id];
-    const min = Math.min(...data), max = Math.max(...data);
-    const color = SP_COLORS[id];
-    el.innerHTML = data.map(v => {
-      const h = Math.max(4, ((v - min) / (max - min + 1)) * 28 + 4);
-      return `<div class="sp-bar" style="height:${h}px;background:${color};opacity:.7"></div>`;
-    }).join('');
-  });
-}
 </script>
+
 </body>
 </html>

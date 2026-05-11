@@ -1,667 +1,432 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OEE Live — Temps Réel</title>
+<title>OEE Live — Industrial Real-Time Monitoring</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
 <style>
+/* ══════════════════════════════════════════════
+   DESIGN SYSTEM — UNIFIED WITH STATIC DASHBOARD
+   ══════════════════════════════════════════════ */
 :root {
-  --bg:      #060a10;
-  --panel:   #0c1219;
-  --card:    #101820;
-  --hover:   #161f2c;
-  --border:  #1a2840;
-  --amber:   #f59e0b;
-  --orange:  #f97316;
-  --blue:    #3b82f6;
-  --cyan:    #06b6d4;
-  --green:   #10b981;
-  --red:     #ef4444;
-  --yellow:  #eab308;
-  --t1:      #f0f6ff;
-  --t2:      #8fa3bf;
-  --t3:      #3d5470;
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --primary: #6366f1;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6;
 }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html{font-size:13px;}
-body{
-  font-family:'Rajdhani',sans-serif;
-  background:var(--bg);
-  color:var(--t1);
-  min-height:100vh;
-  overflow-x:hidden;
+
+[data-theme="dark"] {
+  --bg: #0f172a;
+  --panel: #1e293b;
+  --card: #1e293b;
+  --surface: #334155;
+  --border: #334155;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+  --header-bg: rgba(15, 23, 42, 0.8);
 }
-body::before{
-  content:'';position:fixed;inset:0;z-index:0;
-  background-image:
-    linear-gradient(rgba(245,158,11,.03) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(245,158,11,.03) 1px,transparent 1px);
-  background-size:50px 50px;
-  pointer-events:none;
+
+[data-theme="light"] {
+  --bg: #f8fafc;
+  --panel: #ffffff;
+  --card: #ffffff;
+  --surface: #f1f5f9;
+  --border: #e2e8f0;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-dim: #94a3b8;
+  --header-bg: rgba(255, 255, 255, 0.8);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text-main);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  min-height: 100vh;
 }
 
 /* ── HEADER ── */
-.header{
-  position:relative;z-index:10;
-  background:var(--panel);
-  border-bottom:1px solid var(--border);
-  padding:0 24px;
-  height:52px;
-  display:flex;align-items:center;justify-content:space-between;
+.header {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--header-bg); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  height: 64px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 32px;
 }
-.header-left{display:flex;align-items:center;gap:16px;}
-.logo{
-  font-family:'Bebas Neue',sans-serif;
-  font-size:22px;letter-spacing:4px;color:var(--t1);
+.brand { display: flex; align-items: center; gap: 12px; }
+.logo-live { 
+  display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 18px; 
 }
-.logo span{color:var(--amber);}
-.live-badge{
-  display:flex;align-items:center;gap:6px;
-  background:rgba(16,185,129,.1);
-  border:1px solid rgba(16,185,129,.3);
-  border-radius:20px;padding:3px 10px;
-  font-size:11px;font-weight:600;letter-spacing:1px;
-  color:var(--green);text-transform:uppercase;
+.live-indicator {
+  width: 8px; height: 8px; background: var(--success); border-radius: 50%;
+  box-shadow: 0 0 10px var(--success); animation: pulse 2s infinite;
 }
-.live-dot{
-  width:7px;height:7px;border-radius:50%;
-  background:var(--green);
-  animation:blink 1s infinite;
+@keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.3); opacity: 0.5; } 100% { transform: scale(1); opacity: 1; } }
+
+.actions { display: flex; align-items: center; gap: 20px; }
+.conn-status { font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border); }
+.connected { color: var(--success); border-color: var(--success); }
+.disconnected { color: var(--danger); border-color: var(--danger); }
+
+.theme-toggle {
+  width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--card); color: var(--text-main); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
 }
-.conn-badge{
-  display:flex;align-items:center;gap:6px;
-  padding:3px 10px;border-radius:20px;
-  font-size:11px;font-weight:600;letter-spacing:1px;
-  text-transform:uppercase;
-  transition:all .3s;
-}
-.conn-badge.connected{
-  background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:var(--green);
-}
-.conn-badge.disconnected{
-  background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--red);
-}
-.header-right{display:flex;align-items:center;gap:20px;}
-.clock{
-  font-family:'JetBrains Mono',monospace;
-  font-size:13px;color:var(--t2);letter-spacing:1px;
-}
-.tick-counter{
-  font-family:'JetBrains Mono',monospace;
-  font-size:11px;color:var(--t3);
-}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 
 /* ── LAYOUT ── */
-.body{
-  position:relative;z-index:1;
-  padding:16px 20px;
-  display:flex;flex-direction:column;gap:14px;
+.container {
+  max-width: 1440px; margin: 0 auto; padding: 24px 32px;
+  display: flex; flex-direction: column; gap: 24px;
 }
-
-/* ── NOTIFICATION TOAST ── */
-.toast-zone{
-  position:fixed;top:64px;right:20px;
-  z-index:1000;display:flex;flex-direction:column;gap:8px;
-  pointer-events:none;
-}
-.toast{
-  background:var(--card);
-  border-left:3px solid var(--red);
-  border:1px solid rgba(239,68,68,.4);
-  border-left-width:3px;
-  border-radius:6px;padding:10px 14px;
-  min-width:280px;max-width:340px;
-  font-size:12px;font-weight:500;
-  animation:slideIn .3s ease,fadeOut .4s ease 4.6s forwards;
-  pointer-events:all;
-}
-.toast.arret{border-left-color:var(--red);border-color:rgba(239,68,68,.4);}
-.toast.alerte{border-left-color:var(--yellow);border-color:rgba(234,179,8,.4);}
-.toast-title{font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:6px;}
-.toast-body{color:var(--t2);}
-@keyframes slideIn{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
-@keyframes fadeOut{from{opacity:1}to{opacity:0;transform:translateX(110%)}}
 
 /* ── KPI STRIP ── */
-.kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
-.kpi{
-  background:var(--card);border:1px solid var(--border);
-  border-radius:8px;padding:14px 16px;
-  position:relative;overflow:hidden;
-  transition:border-color .3s;
+.kpi-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
+.kpi-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 20px; box-shadow: var(--shadow-sm);
 }
-.kpi::after{
-  content:'';position:absolute;top:0;left:0;right:0;height:2px;
-}
-.kpi.oee::after  {background:linear-gradient(90deg,var(--amber),var(--orange));}
-.kpi.dispo::after{background:var(--blue);}
-.kpi.perf::after {background:var(--cyan);}
-.kpi.qual::after {background:var(--green);}
-.kpi.arrets::after{background:var(--red);}
-.kpi-lbl{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--t3);margin-bottom:6px;font-weight:600;}
-.kpi-val{
-  font-family:'Bebas Neue',sans-serif;
-  font-size:36px;letter-spacing:1px;line-height:1;
-  color:var(--t1);
-  transition:color .3s;
-}
-.kpi-sub{font-size:11px;color:var(--t3);margin-top:4px;letter-spacing:.5px;}
-.kpi-delta{
-  position:absolute;top:14px;right:14px;
-  font-size:11px;font-weight:600;
-}
-.delta-up{color:var(--green);}
-.delta-down{color:var(--red);}
-.kpi.flash .kpi-val{color:var(--amber);}
+.kpi-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
+.kpi-value { font-size: 28px; font-weight: 700; color: var(--text-main); }
+.kpi-sub { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
 
-/* ── MAIN GRID ── */
-.main-grid{display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:14px;align-items:start;}
-
-/* ── CARDS ── */
-.card{
-  background:var(--card);border:1px solid var(--border);
-  border-radius:8px;padding:16px;
-  display:flex;flex-direction:column;gap:12px;
+/* ── MAIN CONTENT ── */
+.main-grid { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 24px; }
+.content-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  padding: 20px; display: flex; flex-direction: column; gap: 16px;
 }
-.card-title{
-  font-family:'Bebas Neue',sans-serif;
-  font-size:14px;letter-spacing:2.5px;color:var(--t1);
-}
-.card-sub{font-size:11px;color:var(--t3);letter-spacing:.5px;}
+.card-title { font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; }
 
-/* ── MACHINE CARDS ── */
-.machine-grid{display:flex;flex-direction:column;gap:8px;}
-.machine-item{
-  background:var(--hover);border:1px solid var(--border);
-  border-radius:6px;padding:10px 12px;
-  display:flex;align-items:center;gap:10px;
-  transition:border-color .3s, background .3s;
+/* ── MACHINES LIST ── */
+.machine-list { display: flex; flex-direction: column; gap: 10px; }
+.machine-item {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 16px; display: flex; align-items: center; gap: 12px;
 }
-.machine-item.critical{border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.04);}
-.machine-item.warning {border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.04);}
-.machine-item.stopped {border-color:rgba(239,68,68,.6);background:rgba(239,68,68,.08);}
-.machine-item.running {border-color:var(--border);}
+.machine-status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.running { background: var(--success); }
+.warning { background: var(--warning); animation: blink 1.5s infinite; }
+.critical { background: var(--danger); animation: blink 1s infinite; }
+.stopped { background: var(--text-dim); }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
-.m-status{
-  width:8px;height:8px;border-radius:50%;flex-shrink:0;
-}
-.m-status.running {background:var(--green);}
-.m-status.warning {background:var(--yellow);animation:blink 1.5s infinite;}
-.m-status.critical{background:var(--orange);animation:blink 1s infinite;}
-.m-status.stopped {background:var(--red);animation:blink .7s infinite;}
-
-.m-info{flex:1;min-width:0;}
-.m-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.m-id  {font-size:10px;color:var(--t3);font-family:'JetBrains Mono';}
-.m-oee {
-  font-family:'Bebas Neue',sans-serif;font-size:22px;
-  letter-spacing:1px;flex-shrink:0;width:58px;text-align:right;
-  transition:color .3s;
-}
-.oee-wc  {color:var(--green);}
-.oee-ok  {color:var(--blue);}
-.oee-med {color:var(--amber);}
-.oee-low {color:var(--red);}
-
-.m-bars{flex-shrink:0;width:80px;}
-.mini-bar{
-  display:flex;align-items:center;gap:4px;margin-bottom:2px;
-}
-.mini-bar-bg{flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
-.mini-bar-fill{height:100%;border-radius:2px;transition:width .6s ease;}
-.mini-bar-lbl{font-family:'JetBrains Mono';font-size:9px;color:var(--t3);width:28px;text-align:right;}
-
-/* ── TREND CHART ── */
-.chart-wrap{flex:1;position:relative;min-height:160px;}
-canvas{width:100%!important;}
+.m-name { flex: 1; font-weight: 600; font-size: 14px; }
+.m-oee-val { font-family: 'JetBrains Mono'; font-weight: 700; font-size: 16px; }
 
 /* ── LIVE FEED ── */
-.feed{display:flex;flex-direction:column;gap:6px;max-height:280px;overflow:hidden;}
-.feed-item{
-  background:var(--hover);border-radius:5px;
-  padding:8px 12px;font-size:11px;
-  border-left:3px solid var(--border);
-  animation:slideInLeft .3s ease;
-  flex-shrink:0;
+.live-feed { display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; padding-right: 4px; }
+.feed-item {
+  padding: 10px 14px; border-radius: 8px; background: var(--surface);
+  border-left: 3px solid var(--primary); font-size: 13px;
+  animation: slideIn 0.3s ease-out;
 }
-.feed-item.panne{border-left-color:var(--red);}
-.feed-item.maintenance{border-left-color:var(--amber);}
-.feed-item.qualite{border-left-color:var(--cyan);}
-.feed-item.organisationnel{border-left-color:var(--blue);}
-.feed-time{color:var(--t3);font-family:'JetBrains Mono';margin-bottom:2px;}
-.feed-machine{font-weight:600;color:var(--t1);}
-.feed-cause{color:var(--t2);}
-@keyframes slideInLeft{from{transform:translateX(-20px);opacity:0}to{transform:translateX(0);opacity:1}}
+.feed-panne { border-left-color: var(--danger); }
+.feed-maint { border-left-color: var(--warning); }
+@keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
 
-/* ── BOTTOM ROW ── */
-.bottom-row{display:grid;grid-template-columns:1.5fr 1fr;gap:14px;}
-
-/* ── PROD TICKER ── */
-.prod-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
-.prod-item{
-  background:var(--hover);border:1px solid var(--border);
-  border-radius:6px;padding:10px;text-align:center;
+/* ── TOASTS ── */
+.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
+.toast {
+  padding: 12px 20px; border-radius: 8px; background: var(--panel); border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg); color: var(--text-main); font-size: 13px; font-weight: 500;
+  border-left: 4px solid var(--primary); animation: toastIn 0.3s ease-out;
 }
-.prod-val{
-  font-family:'Bebas Neue',sans-serif;font-size:26px;
-  color:var(--t1);letter-spacing:1px;
-}
-.prod-lbl{font-size:10px;color:var(--t3);letter-spacing:1px;text-transform:uppercase;margin-top:2px;}
+@keyframes toastIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
 /* ── SCROLLBAR ── */
-::-webkit-scrollbar{width:4px;}
-::-webkit-scrollbar-track{background:var(--bg);}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
-<div class="header">
-  <div class="header-left">
-    <div class="logo">OEE <span>LIVE</span></div>
-    <div class="live-badge"><div class="live-dot"></div>Temps Réel</div>
-    <div class="conn-badge disconnected" id="conn-badge">
-      <div class="live-dot" style="background:currentColor"></div>
-      <span id="conn-text">Connexion...</span>
+<header class="header">
+  <div class="brand">
+    <div class="logo-live">
+      <div class="live-indicator"></div>
+      OEE Live Monitoring
     </div>
   </div>
-  <div class="header-right">
-    <div class="tick-counter">TICK #<span id="tick-val">0</span> · Δ2s</div>
-    <div class="clock" id="clock">--:--:--</div>
+
+  <div class="actions">
+    <div class="conn-status disconnected" id="status-badge">Hors Ligne</div>
+    <div style="font-family: 'JetBrains Mono'; font-size: 13px; color: var(--text-muted);" id="current-time">00:00:00</div>
+    <button class="theme-toggle" id="theme-toggle">🌓</button>
   </div>
-</div>
+</header>
 
-<!-- TOAST ZONE -->
-<div class="toast-zone" id="toast-zone"></div>
-
-<div class="body">
-
-  <!-- KPI STRIP -->
+<div class="container">
+  
+  <!-- KPI Strip -->
   <div class="kpi-strip">
-    <div class="kpi oee" id="kpi-oee">
-      <div class="kpi-lbl">OEE Global</div>
-      <div class="kpi-val" id="val-oee">--%</div>
-      <div class="kpi-sub">Objectif 85%</div>
-      <div class="kpi-delta" id="delta-oee"></div>
+    <div class="kpi-card">
+      <div class="kpi-label">OEE Global</div>
+      <div class="kpi-value" id="val-oee">--%</div>
+      <div class="kpi-sub" id="delta-oee">Attente de données...</div>
     </div>
-    <div class="kpi dispo">
-      <div class="kpi-lbl">Disponibilité</div>
-      <div class="kpi-val" id="val-d">--%</div>
+    <div class="kpi-card">
+      <div class="kpi-label">Disponibilité</div>
+      <div class="kpi-value" id="val-d">--%</div>
       <div class="kpi-sub">Temps de marche</div>
     </div>
-    <div class="kpi perf">
-      <div class="kpi-lbl">Performance</div>
-      <div class="kpi-val" id="val-p">--%</div>
+    <div class="kpi-card">
+      <div class="kpi-label">Performance</div>
+      <div class="kpi-value" id="val-p">--%</div>
       <div class="kpi-sub">Cadence réelle</div>
     </div>
-    <div class="kpi qual">
-      <div class="kpi-lbl">Qualité</div>
-      <div class="kpi-val" id="val-q">--%</div>
+    <div class="kpi-card">
+      <div class="kpi-label">Qualité</div>
+      <div class="kpi-value" id="val-q">--%</div>
       <div class="kpi-sub">Pièces conformes</div>
     </div>
-    <div class="kpi arrets">
-      <div class="kpi-lbl">Machines Arrêtées</div>
-      <div class="kpi-val" id="val-arrets">0</div>
-      <div class="kpi-sub">sur 5 machines</div>
+    <div class="kpi-card" style="border-left: 3px solid var(--danger);">
+      <div class="kpi-label">Arrêts Actifs</div>
+      <div class="kpi-value" id="val-arrets">0</div>
+      <div class="kpi-sub">Sur 5 machines</div>
     </div>
   </div>
 
-  <!-- MAIN GRID -->
+  <!-- Main Grid -->
   <div class="main-grid">
-
-    <!-- MACHINES -->
-    <div class="card">
-      <div>
-        <div class="card-title">État Machines</div>
-        <div class="card-sub">Mise à jour toutes les 2 secondes</div>
-      </div>
-      <div class="machine-grid" id="machine-grid">
-        <!-- injecté par JS -->
+    
+    <!-- Machine Status -->
+    <div class="content-card">
+      <div class="card-title">État des Équipements</div>
+      <div class="machine-list" id="machine-list">
+        <!-- JS Populated -->
       </div>
     </div>
 
-    <!-- LIVE FEED -->
-    <div class="card">
-      <div>
-        <div class="card-title">Journal des Arrêts</div>
-        <div class="card-sub">Événements en temps réel</div>
-      </div>
-      <div class="feed" id="arret-feed">
-        <div class="feed-item" style="color:var(--t3);border-left-color:var(--t3)">
-          En attente d'événements...
+    <!-- Live Journal -->
+    <div class="content-card">
+      <div class="card-title">Journal des Événements</div>
+      <div class="live-feed" id="event-feed">
+        <div style="font-size: 12px; color: var(--text-dim); text-align: center; margin-top: 20px;">
+          En attente du flux de données...
         </div>
       </div>
     </div>
 
-    <!-- TREND CHART -->
-    <div class="card">
-      <div>
-        <div class="card-title">Tendance OEE Live</div>
-        <div class="card-sub">60 dernières mesures · fenêtre glissante</div>
-      </div>
-      <div class="chart-wrap">
-        <canvas id="chart-live"></canvas>
-      </div>
-    </div>
-
-  </div><!-- /main-grid -->
-
-  <!-- BOTTOM ROW -->
-  <div class="bottom-row">
-
-    <!-- PRODUCTION SESSION -->
-    <div class="card">
-      <div>
-        <div class="card-title">Production Session</div>
-        <div class="card-sub">Depuis le démarrage de la session</div>
-      </div>
-      <div class="prod-grid" id="prod-grid">
-        <div class="prod-item">
-          <div class="prod-val" id="prod-m01">0</div><div class="prod-lbl">M01 Alpha</div>
-        </div>
-        <div class="prod-item">
-          <div class="prod-val" id="prod-m02">0</div><div class="prod-lbl">M02 Beta</div>
-        </div>
-        <div class="prod-item">
-          <div class="prod-val" id="prod-m03">0</div><div class="prod-lbl">M03 Gamma</div>
-        </div>
-        <div class="prod-item">
-          <div class="prod-val" id="prod-m04">0</div><div class="prod-lbl">M04 Delta</div>
-        </div>
-        <div class="prod-item">
-          <div class="prod-val" id="prod-m05">0</div><div class="prod-lbl">M05 Epsilon</div>
-        </div>
-        <div class="prod-item">
-          <div class="prod-val" id="prod-total">0</div><div class="prod-lbl">Total Session</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- BAR CHART PAR MACHINE -->
-    <div class="card">
-      <div>
-        <div class="card-title">OEE par Machine · Snapshot</div>
-        <div class="card-sub">Valeur instantanée</div>
-      </div>
-      <div class="chart-wrap" style="min-height:130px">
-        <canvas id="chart-bar"></canvas>
+    <!-- Trend Chart -->
+    <div class="content-card">
+      <div class="card-title">Tendance OEE (Live)</div>
+      <div style="flex: 1; position: relative;">
+        <canvas id="liveTrendChart"></canvas>
       </div>
     </div>
 
   </div>
+
+  <!-- Session Stats -->
+  <div class="content-card">
+    <div class="card-title">Production Cumulée (Session)</div>
+    <div style="height: 150px;">
+      <canvas id="sessionBarChart"></canvas>
+    </div>
+  </div>
+
 </div>
 
+<div class="toast-container" id="toast-container"></div>
+
 <script>
+// ── THEME ENGINE ───────────────────────────────────────────────────
+const themeToggle = document.getElementById('theme-toggle');
+const html = document.documentElement;
+
+themeToggle.addEventListener('click', () => {
+  const currentTheme = html.getAttribute('data-theme');
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', newTheme);
+  localStorage.setItem('theme', newTheme);
+  updateChartsTheme();
+});
+
+const savedTheme = localStorage.getItem('theme') || 'dark';
+html.setAttribute('data-theme', savedTheme);
+
 // ── CLOCK ──────────────────────────────────────────────────────────
 setInterval(() => {
-  document.getElementById('clock').textContent =
-    new Date().toLocaleTimeString('fr-FR');
-}, 500);
+  document.getElementById('current-time').textContent = new Date().toLocaleTimeString('fr-FR');
+}, 1000);
 
-// ── CHART SETUP ────────────────────────────────────────────────────
-Chart.defaults.font.family = "'Rajdhani',sans-serif";
-Chart.defaults.color = '#3d5470';
-const grid = { color:'rgba(255,255,255,.04)', drawBorder:false };
-
-const MAX_POINTS = 60;
-const trendData = {
-  labels: [],
-  oee: [], d: [], p: [], q: []
+// ── CHARTS ─────────────────────────────────────────────────────────
+const chartColors = {
+  primary: '#6366f1',
+  success: '#10b981',
+  warning: '#f59e0b',
+  danger: '#ef4444',
+  text: () => html.getAttribute('data-theme') === 'dark' ? '#94a3b8' : '#64748b',
+  grid: () => html.getAttribute('data-theme') === 'dark' ? '#334155' : '#e2e8f0'
 };
 
-const ctxLine = document.getElementById('chart-live').getContext('2d');
-const lineChart = new Chart(ctxLine, {
-  type: 'line',
-  data: {
-    labels: trendData.labels,
-    datasets: [
-      {
-        label:'OEE', data: trendData.oee,
-        borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,.06)',
-        borderWidth:2.5, tension:.4, fill:true, pointRadius:0
-      },
-      {
-        label:'Disponibilité', data: trendData.d,
-        borderColor:'#3b82f6', borderWidth:1.5, tension:.4, fill:false, pointRadius:0
-      },
-      {
-        label:'Performance', data: trendData.p,
-        borderColor:'#06b6d4', borderWidth:1.5, tension:.4, fill:false, pointRadius:0
-      },
-      {
-        label:'Qualité', data: trendData.q,
-        borderColor:'#10b981', borderWidth:1.5, tension:.4, fill:false, pointRadius:0
-      },
-      {
-        label:'Objectif 85%', data:[],
-        borderColor:'rgba(239,68,68,.5)', borderDash:[5,4],
-        borderWidth:1, pointRadius:0, fill:false
-      }
-    ]
-  },
-  options: {
-    responsive:true, maintainAspectRatio:false,
-    animation:{duration:400},
-    plugins:{
-      legend:{position:'bottom', labels:{usePointStyle:true, pointStyleWidth:8, boxHeight:5, font:{size:11}}},
-      tooltip:{
-        backgroundColor:'#101820', borderColor:'#1a2840', borderWidth:1,
-        callbacks:{label: c => ` ${c.dataset.label}: ${(c.parsed.y*100).toFixed(1)}%`}
-      }
+let lineChart, barChart;
+const maxPoints = 50;
+const history = { labels: [], oee: [] };
+
+function initCharts() {
+  const ctxLine = document.getElementById('liveTrendChart').getContext('2d');
+  lineChart = new Chart(ctxLine, {
+    type: 'line',
+    data: {
+      labels: history.labels,
+      datasets: [{
+        label: 'OEE %',
+        data: history.oee,
+        borderColor: chartColors.primary,
+        borderWidth: 2,
+        tension: 0.4,
+        fill: true,
+        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+        pointRadius: 0
+      }]
     },
-    scales:{
-      x:{grid:{display:false}, ticks:{maxRotation:0, font:{size:9}, maxTicksLimit:8}},
-      y:{grid, min:0.4, max:1.0, ticks:{callback: v => (v*100).toFixed(0)+'%', font:{size:10}}}
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { display: false },
+        y: { min: 0.4, max: 1.0, ticks: { color: chartColors.text(), callback: v => (v*100).toFixed(0)+'%' }, grid: { color: chartColors.grid() } }
+      }
     }
-  }
+  });
+
+  const ctxBar = document.getElementById('sessionBarChart').getContext('2d');
+  barChart = new Chart(ctxBar, {
+    type: 'bar',
+    data: {
+      labels: ['M01', 'M02', 'M03', 'M04', 'M05'],
+      datasets: [{
+        label: 'Pièces',
+        data: [0, 0, 0, 0, 0],
+        backgroundColor: chartColors.primary,
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: chartColors.text() }, grid: { display: false } },
+        y: { ticks: { color: chartColors.text() }, grid: { color: chartColors.grid() } }
+      }
+    }
+  });
+}
+
+function updateChartsTheme() {
+  const color = chartColors.text();
+  const grid = chartColors.grid();
+  lineChart.options.scales.y.ticks.color = color;
+  lineChart.options.scales.y.grid.color = grid;
+  lineChart.update();
+  barChart.options.scales.x.ticks.color = color;
+  barChart.options.scales.y.ticks.color = color;
+  barChart.options.scales.y.grid.color = grid;
+  barChart.update();
+}
+
+// ── SOCKET ENGINE ──────────────────────────────────────────────────
+const socket = io('http://localhost:5000');
+const statusBadge = document.getElementById('status-badge');
+
+socket.on('connect', () => {
+  statusBadge.textContent = 'Connecté (WS)';
+  statusBadge.className = 'conn-status connected';
+  addToast('Connexion établie au serveur temps réel');
 });
 
-const ctxBar = document.getElementById('chart-bar').getContext('2d');
-const barChart = new Chart(ctxBar, {
-  type:'bar',
-  data:{
-    labels:['M01','M02','M03','M04','M05'],
-    datasets:[{
-      label:'OEE %',
-      data:[0,0,0,0,0],
-      backgroundColor:[
-        'rgba(59,130,246,.7)','rgba(245,158,11,.7)','rgba(239,68,68,.7)',
-        'rgba(16,185,129,.7)','rgba(245,158,11,.7)'
-      ],
-      borderRadius:4, borderSkipped:false
-    }]
-  },
-  options:{
-    indexAxis:'y', responsive:true, maintainAspectRatio:false,
-    animation:{duration:500},
-    plugins:{legend:{display:false},
-      tooltip:{
-        backgroundColor:'#101820', borderColor:'#1a2840', borderWidth:1,
-        callbacks:{label:c => ` OEE: ${(c.parsed.x*100).toFixed(1)}%`}
-      }
-    },
-    scales:{
-      x:{grid, min:0, max:1, ticks:{callback:v=>(v*100).toFixed(0)+'%',font:{size:10}}},
-      y:{grid:{display:false}, ticks:{font:{size:11}}}
-    }
-  }
+socket.on('disconnect', () => {
+  statusBadge.textContent = 'Hors Ligne';
+  statusBadge.className = 'conn-status disconnected';
 });
 
-// ── HELPERS ────────────────────────────────────────────────────────
-function oeeClass(v) {
-  return v >= .85 ? 'oee-wc' : v >= .75 ? 'oee-ok' : v >= .65 ? 'oee-med' : 'oee-low';
-}
-function pct(v){ return (v*100).toFixed(1)+'%'; }
-function intFmt(n){ return n.toLocaleString('fr-FR'); }
+socket.on('oee_update', data => {
+  updateUI(data);
+});
 
-let prevOEE = null;
+socket.on('arret_detecte', arret => {
+  addEvent(arret, 'feed-panne');
+  addToast(`⚠️ Panne détectée : ${arret.machine} (${arret.cause})`, 'var(--danger)');
+});
 
-// ── MACHINES RENDER ────────────────────────────────────────────────
-function renderMachines(machines) {
-  const grid = document.getElementById('machine-grid');
-  grid.innerHTML = Object.entries(machines).map(([mid, m]) => {
-    const cls = m.statut;
-    const oeeClass_ = oeeClass(m.oee);
-    return `
-    <div class="machine-item ${cls}">
-      <div class="m-status ${cls}"></div>
-      <div class="m-info">
-        <div class="m-name">${m.nom.replace('Fraiseuse ','').replace('Tour ','').replace('Presse ','').replace('Robot ','').replace('Ligne ','')}</div>
-        <div class="m-id">${mid} · ${m.ligne}</div>
-      </div>
-      <div class="m-bars">
-        <div class="mini-bar">
-          <div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${m.disponibilite*100}%;background:#3b82f6"></div></div>
-          <div class="mini-bar-lbl">${(m.disponibilite*100).toFixed(0)}%</div>
-        </div>
-        <div class="mini-bar">
-          <div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${m.performance*100}%;background:#06b6d4"></div></div>
-          <div class="mini-bar-lbl">${(m.performance*100).toFixed(0)}%</div>
-        </div>
-        <div class="mini-bar">
-          <div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${m.qualite*100}%;background:#10b981"></div></div>
-          <div class="mini-bar-lbl">${(m.qualite*100).toFixed(0)}%</div>
-        </div>
-      </div>
-      <div class="m-oee ${oeeClass_}">${(m.oee*100).toFixed(1)}%</div>
-    </div>`;
-  }).join('');
-}
-
-// ── TOAST ──────────────────────────────────────────────────────────
-function showToast(type, title, body) {
-  const zone = document.getElementById('toast-zone');
-  const el = document.createElement('div');
-  el.className = `toast ${type}`;
-  el.innerHTML = `<div class="toast-title">${title}</div><div class="toast-body">${body}</div>`;
-  zone.prepend(el);
-  setTimeout(() => el.remove(), 5200);
-}
-
-// ── FEED ───────────────────────────────────────────────────────────
-function addFeedItem(arret) {
-  const feed = document.getElementById('arret-feed');
-  const time = new Date(arret.timestamp).toLocaleTimeString('fr-FR');
-  const catClass = (arret.categorie||'').toLowerCase();
-  const el = document.createElement('div');
-  el.className = `feed-item ${catClass}`;
-  el.innerHTML = `
-    <div class="feed-time">${time}</div>
-    <div class="feed-machine">⛔ ${arret.machine}</div>
-    <div class="feed-cause">${arret.cause} · ~${arret.duree_estimee_min} min</div>`;
-  const placeholder = feed.querySelector('[style*="var(--t3)"]');
-  if (placeholder) placeholder.remove();
-  feed.prepend(el);
-  while (feed.children.length > 8) feed.lastChild.remove();
-}
-
-// ── UPDATE UI ──────────────────────────────────────────────────────
 function updateUI(data) {
   const g = data.global;
   const m = data.machines;
 
-  // KPI
-  document.getElementById('val-oee').textContent = pct(g.oee);
-  document.getElementById('val-d').textContent   = pct(g.disponibilite);
-  document.getElementById('val-p').textContent   = pct(g.performance);
-  document.getElementById('val-q').textContent   = pct(g.qualite);
+  // KPIs
+  document.getElementById('val-oee').textContent = (g.oee * 100).toFixed(1) + '%';
+  document.getElementById('val-d').textContent   = (g.disponibilite * 100).toFixed(1) + '%';
+  document.getElementById('val-p').textContent   = (g.performance * 100).toFixed(1) + '%';
+  document.getElementById('val-q').textContent   = (g.qualite * 100).toFixed(1) + '%';
   document.getElementById('val-arrets').textContent = g.machines_en_arret;
-  document.getElementById('tick-val').textContent = data.tick;
 
-  // Delta OEE
-  if (prevOEE !== null) {
-    const delta = g.oee - prevOEE;
-    const el = document.getElementById('delta-oee');
-    el.textContent = (delta >= 0 ? '▲' : '▼') + ' ' + Math.abs(delta*100).toFixed(2)+'%';
-    el.className = 'kpi-delta ' + (delta >= 0 ? 'delta-up' : 'delta-down');
-  }
-  prevOEE = g.oee;
+  // List
+  const list = document.getElementById('machine-list');
+  list.innerHTML = Object.entries(m).map(([id, machine]) => `
+    <div class="machine-item">
+      <div class="machine-status-dot ${machine.statut}"></div>
+      <div class="m-name">${machine.nom}</div>
+      <div class="m-oee-val" style="color: ${machine.oee < 0.65 ? 'var(--danger)' : 'var(--text-main)'}">
+        ${(machine.oee * 100).toFixed(1)}%
+      </div>
+    </div>
+  `).join('');
 
-  // Flash KPI
-  const kpiEl = document.getElementById('kpi-oee');
-  kpiEl.classList.add('flash');
-  setTimeout(() => kpiEl.classList.remove('flash'), 400);
-
-  // Machines
-  renderMachines(m);
-
-  // Bar chart
-  const ids = ['M01','M02','M03','M04','M05'];
-  barChart.data.datasets[0].data = ids.map(id => m[id]?.oee || 0);
-  barChart.data.datasets[0].backgroundColor = ids.map(id => {
-    const v = m[id]?.oee || 0;
-    return v >= .85 ? 'rgba(16,185,129,.75)' :
-           v >= .75 ? 'rgba(59,130,246,.75)' :
-           v >= .65 ? 'rgba(245,158,11,.75)' : 'rgba(239,68,68,.75)';
-  });
-  barChart.update('none');
-
-  // Trend chart
-  const ts = new Date(data.timestamp).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  trendData.labels.push(ts);
-  trendData.oee.push(g.oee);
-  trendData.d.push(g.disponibilite);
-  trendData.p.push(g.performance);
-  trendData.q.push(g.qualite);
-  lineChart.data.datasets[4].data.push(0.85);
-
-  if (trendData.labels.length > MAX_POINTS) {
-    ['labels','oee','d','p','q'].forEach(k => trendData[k].shift());
-    lineChart.data.datasets[4].data.shift();
+  // Charts
+  const now = new Date().toLocaleTimeString();
+  history.labels.push(now);
+  history.oee.push(g.oee);
+  if (history.labels.length > maxPoints) {
+    history.labels.shift();
+    history.oee.shift();
   }
   lineChart.update('none');
 
-  // Production
-  const mapping = {M01:'prod-m01',M02:'prod-m02',M03:'prod-m03',M04:'prod-m04',M05:'prod-m05'};
-  let total = 0;
-  Object.entries(m).forEach(([id, machine]) => {
-    const el = document.getElementById(mapping[id]);
-    if (el) el.textContent = intFmt(machine.prod_session);
-    total += machine.prod_session;
-  });
-  document.getElementById('prod-total').textContent = intFmt(total);
+  barChart.data.datasets[0].data = Object.values(m).map(x => x.prod_session);
+  barChart.update('none');
 }
 
-// ── SOCKET.IO ──────────────────────────────────────────────────────
-const socket = io('http://localhost:5000', {
-  transports: ['websocket','polling'],
-  reconnectionDelay: 1000,
-  reconnectionAttempts: 10
-});
+function addEvent(evt, cssClass) {
+  const feed = document.getElementById('event-feed');
+  const div = document.createElement('div');
+  div.className = `feed-item ${cssClass}`;
+  const time = new Date(evt.timestamp).toLocaleTimeString();
+  div.innerHTML = `<strong>${time}</strong> | ${evt.machine} : ${evt.cause}`;
+  const first = feed.firstChild;
+  if (first && first.style) feed.insertBefore(div, first);
+  else feed.prepend(div);
+  if (feed.children.length > 20) feed.lastChild.remove();
+}
 
-const badge = document.getElementById('conn-badge');
-const connText = document.getElementById('conn-text');
+function addToast(msg, color = 'var(--primary)') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.style.borderLeftColor = color;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(10px)';
+    setTimeout(() => toast.remove(), 300);
+  }, 4000);
+}
 
-socket.on('connect', () => {
-  badge.className = 'conn-badge connected';
-  connText.textContent = 'Connecté · WS';
-  showToast('alerte', '✅ Connexion établie', 'Flux temps réel actif · OEE Live Dashboard');
-});
-
-socket.on('disconnect', () => {
-  badge.className = 'conn-badge disconnected';
-  connText.textContent = 'Déconnecté';
-  showToast('panne', '❌ Connexion perdue', 'Tentative de reconnexion...');
-});
-
-socket.on('oee_update', data => updateUI(data));
-
-socket.on('arret_detecte', arret => {
-  addFeedItem(arret);
-  const sev = arret.severite === 'haute' ? '🔴' : '🟡';
-  showToast('arret', `${sev} Arrêt · ${arret.machine.split(' ').slice(-1)[0]}`,
-    `${arret.cause} · Durée estimée : ${arret.duree_estimee_min} min`);
-});
-
-socket.on('alerte', data => {
-  showToast('alerte', `⚠ Alerte OEE Critique`, `${data.machine} : ${(data.oee*100).toFixed(1)}%`);
-});
+window.onload = initCharts;
 </script>
 </body>
 </html>
