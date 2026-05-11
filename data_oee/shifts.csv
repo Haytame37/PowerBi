@@ -1,0 +1,4 @@
+shift_id,nom_shift,heure_debut,heure_fin,duree_heures,operateurs
+S1,Matin,06:00,14:00,8,Équipe A
+S2,Après-midi,14:00,22:00,8,Équipe B
+S3,Nuit,22:00,06:00,8,Équipe C

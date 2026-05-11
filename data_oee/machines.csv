@@ -1,0 +1,6 @@
+machine_id,nom_machine,ligne,capacite_theorique_heure,temps_cycle_standard_sec,date_installation,responsable
+M01,Fraiseuse CNC Alpha,Ligne A,120,30,2019-03-15,Ahmed K.
+M02,Tour CNC Beta,Ligne A,100,36,2020-07-22,Sara M.
+M03,Presse Hydraulique Gamma,Ligne B,200,18,2018-11-01,Karim B.
+M04,Robot Soudure Delta,Ligne B,80,45,2021-02-10,Nadia L.
+M05,Ligne Assemblage Epsilon,Ligne C,150,24,2022-05-18,Youssef T.

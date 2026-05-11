@@ -1,0 +1,9 @@
+cause_id,categorie,description,criticite
+CA01,Panne,Panne mécanique,Haute
+CA02,Panne,Panne électrique,Haute
+CA03,Maintenance,Maintenance préventive,Moyenne
+CA04,Maintenance,Changement d'outil,Moyenne
+CA05,Qualité,Réglage qualité,Faible
+CA06,Qualité,Contrôle produit,Faible
+CA07,Organisationnel,Manque matière,Moyenne
+CA08,Organisationnel,Changement de série,Faible
